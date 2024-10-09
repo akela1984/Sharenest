@@ -172,10 +172,25 @@ $locationIdsStr = implode(',', $locationIds);
             margin-right: 10px; /* Add space between badge and title */
         }
         .filter-buttons {
-            margin-bottom: 20px;
             display: flex;
-            justify-content: flex-start;
             gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .filter-search {
+            position: relative;
+            flex-grow: 1;
+        }
+        @media (max-width: 576px) {
+            .filter-buttons {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .filter-search {
+                width: 100%;
+                margin-top: 10px;
+            }
         }
         .carousel-item img {
             width: 100%;
@@ -195,54 +210,64 @@ $locationIdsStr = implode(',', $locationIds);
         #map {
             height: 400px;
         }
+        .btn-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .search-suggestions {
+            position: absolute;
+            z-index: 1000;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 0 0 5px 5px;
+            width: 100%;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+        .search-suggestions-header {
+            padding: 10px;
+            font-weight: bold;
+            border-bottom: 1px solid #ddd;
+        }
+        .search-suggestion {
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .search-suggestion img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .search-suggestion:hover {
+            background-color: #f0f0f0;
+        }
+        .badge-suggestion-sharing {
+            background-color: #5cb85c;
+            color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-left: auto;
+        }
+        .badge-suggestion-wanted {
+            background-color: #d9534f;
+            color: white;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-left: auto;
+        }
     </style>
 </head>
 <body class="p-3 m-0 border-0 bd-example m-0 border-0">
 
 <!-- Navbar STARTS here -->
-<nav class="navbar navbar-expand-lg bg-body-tertiary">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="index.php">ShareNest</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
-                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
-            <ul class="navbar-nav mb-2 mb-lg-0">
-                <li class="nav-item spacer">
-                    <a class="btn btn-outline-success" href="my_nest.php">My Nest</a>
-                </li>
-                <li class="nav-item spacer">
-                    <a class="btn btn-outline-success" href="create_listing.php">Create Listing</a>
-                </li>
-                <!-- Add a spacer -->
-                <li class="nav-item spacer"></li>
-                <!-- Spacer end -->
-                <?php if(isset($_SESSION['loggedin'])) { ?>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                           aria-expanded="false">
-                            <span class="me-2">
-                                <i class="fa fa-user"></i>
-                            </span>
-                            Hi, <?php echo htmlspecialchars($_SESSION['username']); ?>
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li class="nav-item"><a class="nav-link" href="profile.php">My Profile</a></li>
-                            <li class="nav-item"><a class="nav-link" href="join_location.php">My Locations</a></li>
-                            <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
-                        </ul>
-                    </li>
-                    
-                <?php } else { ?>
-                    <li class="nav-item">
-                        <a class="btn btn-outline-success" href="signin.php">Sign in</a>
-                    </li>
-                <?php } ?>
-            </ul>
-        </div>
-    </div>
-</nav>
+<?php include 'navbar.php'; ?>
 <!-- Navbar ENDS here -->
 
 <!-- My nest Listings STARTS here -->
@@ -250,36 +275,28 @@ $locationIdsStr = implode(',', $locationIds);
 <div class="container mt-5">
     <h2>Available Listings</h2>
     <div class="filter-buttons">
-        <button id="filter-all" class="btn btn-outline-success">All</button>
-        <button id="filter-sharing" class="btn btn-outline-success">For Sharing</button>
-        <button id="filter-wanted" class="btn btn-outline-success">Wanted</button>
+        <div>
+            <button id="filter-all" class="btn btn-outline-success">All</button>
+            <button id="filter-sharing" class="btn btn-outline-success">For Sharing</button>
+            <button id="filter-wanted" class="btn btn-outline-success">Wanted</button>
+        </div>
+        <div class="filter-search">
+            <input type="text" id="search-input" class="form-control" placeholder="Search listings...">
+            <div id="search-suggestions" class="search-suggestions"></div>
+        </div>
     </div>
-    <div id="listings-container">
+    <div id="listings-container" class="mt-3">
         <!-- Listings will be loaded here -->
     </div>
-    <button id="load-more" class="btn btn-outline-success" style="display: none;">Show more</button>
+    <div class="btn-container">
+        <button id="load-more" class="btn btn-outline-success" style="display: none;">Show more</button>
+    </div>
 </div>
 
 <!-- My nest Listings ENDS here -->
 
 <!-- Footer STARTS here -->
-<footer class="text-white py-4">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-6">
-                <h5>About Us</h5>
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam ut tortor nisi. In hac habitasse platea dictumst.</p>
-            </div>
-            <div class="col-md-6">
-                <h5>Contact Us</h5>
-                <ul class="list-unstyled">
-                    <li>Email: info@yoursite.com</li>
-                    <li>Phone: +123-456-7890</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</footer>
+<?php // include 'footer.php'; ?>
 <!-- Footer ENDS here -->
 
 <!-- Bootstrap Bundle with Popper -->
@@ -290,6 +307,74 @@ $locationIdsStr = implode(',', $locationIds);
     const locationIdsStr = "<?php echo $locationIdsStr; ?>";
     const userPostcode = "<?php echo $user_postcode; ?>";
     let currentFilter = 'all';
+    let searchTerm = '';
+    const placeholderImage = 'img/listing_placeholder.jpeg';
+
+    document.getElementById('search-input').addEventListener('input', () => {
+        searchTerm = document.getElementById('search-input').value.trim();
+        if (searchTerm.length > 2) {
+            fetchSuggestions(searchTerm);
+        } else {
+            document.getElementById('search-suggestions').style.display = 'none';
+        }
+    });
+
+    document.getElementById('search-input').addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            offset = 0;
+            loadListings();
+            document.getElementById('search-suggestions').style.display = 'none';
+        }
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.filter-search')) {
+            document.getElementById('search-suggestions').style.display = 'none';
+        }
+    });
+
+    function fetchSuggestions(query) {
+        fetch(`search_suggestions.php?query=${encodeURIComponent(query)}&locationIds=${locationIdsStr}`)
+            .then(response => response.json())
+            .then(data => {
+                const suggestionsContainer = document.getElementById('search-suggestions');
+                suggestionsContainer.innerHTML = '';
+                if (data.length > 0) {
+                    const header = document.createElement('div');
+                    header.classList.add('search-suggestions-header');
+                    header.textContent = 'Top findings for you';
+                    suggestionsContainer.appendChild(header);
+
+                    data.forEach(suggestion => {
+                        const suggestionElement = document.createElement('div');
+                        suggestionElement.classList.add('search-suggestion');
+                        suggestionElement.innerHTML = `
+                            <img src="${suggestion.image ? suggestion.image : placeholderImage}" alt="${suggestion.title}">
+                            <span>${suggestion.title}</span>
+                            <span class="badge ${suggestion.listing_type === 'sharing' ? 'badge-suggestion-sharing' : 'badge-suggestion-wanted'}">
+                                ${suggestion.listing_type === 'sharing' ? 'For Sharing' : 'Wanted'}
+                            </span>
+                        `;
+                        suggestionElement.addEventListener('click', () => {
+                            openModal(suggestion.id);
+                            suggestionsContainer.style.display = 'none';
+                        });
+                        suggestionsContainer.appendChild(suggestionElement);
+                    });
+                    suggestionsContainer.style.display = 'block';
+                } else {
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
+    }
+
+    function openModal(listingId) {
+        const modalElement = document.querySelector(`#modal-${listingId}`);
+        if (modalElement) {
+            const modal = new bootstrap.Modal(modalElement);
+            modal.show();
+        }
+    }
 
     function timeElapsedString(datetime) {
         const now = new Date();
@@ -316,221 +401,230 @@ $locationIdsStr = implode(',', $locationIds);
     }
 
     function loadListings() {
-    fetch(`load_more.php?offset=${offset}&limit=${limit}&locationIds=${locationIdsStr}&filter=${currentFilter}`)
-        .then(response => response.json())
-        .then(data => {
-            console.log(data); // Debugging line to check JSON structure
-            const listingsContainer = document.getElementById('listings-container');
-            if (offset === 0) {
-                listingsContainer.innerHTML = ''; // Clear previous listings if loading from the beginning
-            }
-            data.forEach(listing => {
-                const listingBox = document.createElement('div');
-                listingBox.classList.add('listing-box');
+        fetch(`load_more.php?offset=${offset}&limit=${limit}&locationIds=${locationIdsStr}&filter=${currentFilter}&search=${encodeURIComponent(searchTerm)}`)
+            .then(response => response.json())
+            .then(data => {
+                const listingsContainer = document.getElementById('listings-container');
+                if (offset === 0) {
+                    listingsContainer.innerHTML = ''; // Clear previous listings if loading from the beginning
+                }
+                data.forEach(listing => {
+                    const listingBox = document.createElement('div');
+                    listingBox.classList.add('listing-box');
 
-                const listingHeader = document.createElement('div');
-                listingHeader.classList.add('listing-header');
+                    const listingHeader = document.createElement('div');
+                    listingHeader.classList.add('listing-header');
 
-                const listingHeaderLeft = document.createElement('div');
-                listingHeaderLeft.classList.add('listing-header-left');
+                    const listingHeaderLeft = document.createElement('div');
+                    listingHeaderLeft.classList.add('listing-header-left');
 
-                const categoryBadge = document.createElement('span');
-                categoryBadge.classList.add('badge');
-                categoryBadge.classList.add(listing.listing_type === 'sharing' ? 'badge-sharing' : 'badge-wanted');
-                categoryBadge.textContent = listing.listing_type === 'sharing' ? 'For Sharing' : 'Wanted';
+                    const categoryBadge = document.createElement('span');
+                    categoryBadge.classList.add('badge');
+                    categoryBadge.classList.add(listing.listing_type === 'sharing' ? 'badge-sharing' : 'badge-wanted');
+                    categoryBadge.textContent = listing.listing_type === 'sharing' ? 'For Sharing' : 'Wanted';
 
-                const locationInfo = document.createElement('span');
-                locationInfo.textContent = `Location: ${listing.location_name}`;
-                locationInfo.style.marginTop = '5px';
+                    const locationInfo = document.createElement('span');
+                    locationInfo.textContent = `Location: ${listing.location_name}`;
+                    locationInfo.style.marginTop = '5px';
 
-                listingHeaderLeft.appendChild(categoryBadge);
-                listingHeaderLeft.appendChild(locationInfo);
+                    listingHeaderLeft.appendChild(categoryBadge);
+                    listingHeaderLeft.appendChild(locationInfo);
 
-                const listingHeaderRight = document.createElement('div');
-                listingHeaderRight.classList.add('listing-header-right');
+                    const listingHeaderRight = document.createElement('div');
+                    listingHeaderRight.classList.add('listing-header-right');
 
-                const timePosted = document.createElement('span');
-                timePosted.textContent = `Posted ${timeElapsedString(listing.time_added)}`;
+                    const timePosted = document.createElement('span');
+                    timePosted.textContent = `Posted ${timeElapsedString(listing.time_added)}`;
 
-                listingHeaderRight.appendChild(timePosted);
+                    listingHeaderRight.appendChild(timePosted);
 
-                listingHeader.appendChild(listingHeaderLeft);
-                listingHeader.appendChild(listingHeaderRight);
+                    listingHeader.appendChild(listingHeaderLeft);
+                    listingHeader.appendChild(listingHeaderRight);
 
-                const listingContent = document.createElement('div');
-                listingContent.classList.add('listing-content');
+                    const listingContent = document.createElement('div');
+                    listingContent.classList.add('listing-content');
 
-                const listingImage = document.createElement('img');
-                listingImage.src = listing.images[0]; // Use the first image as the thumbnail
-                listingImage.alt = 'Listing Image';
-                listingImage.classList.add('listing-image');
+                    const listingImage = document.createElement('img');
+                    listingImage.src = listing.images[0] ? listing.images[0] : placeholderImage; // Use the first image or placeholder if none available
+                    listingImage.alt = 'Listing Image';
+                    listingImage.classList.add('listing-image');
 
-                const listingDetails = document.createElement('div');
-                listingDetails.classList.add('listing-details');
+                    const listingDetails = document.createElement('div');
+                    listingDetails.classList.add('listing-details');
 
-                const listingTitle = document.createElement('div');
-                listingTitle.classList.add('listing-title');
-                listingTitle.textContent = listing.title;
+                    const listingTitle = document.createElement('div');
+                    listingTitle.classList.add('listing-title');
+                    listingTitle.textContent = listing.title;
 
-                const listingDescription = document.createElement('div');
-                listingDescription.classList.add('listing-description');
-                listingDescription.textContent = `${listing.listing_description.substring(0, 200)}...`;
+                    const listingDescription = document.createElement('div');
+                    listingDescription.classList.add('listing-description');
+                    listingDescription.textContent = `${listing.listing_description.substring(0, 200)}...`;
 
-                const listingFooter = document.createElement('div');
-                listingFooter.classList.add('listing-footer');
+                    const listingFooter = document.createElement('div');
+                    listingFooter.classList.add('listing-footer');
 
-                const listingUser = document.createElement('span');
-                listingUser.textContent = `Listed by: ${listing.username}`;
+                    const listingUser = document.createElement('span');
+                    listingUser.textContent = `Listed by: ${listing.username}`;
 
-                const seeDetailsButton = document.createElement('button');
-                seeDetailsButton.classList.add('btn', 'btn-outline-success');
-                seeDetailsButton.textContent = 'See details';
-                seeDetailsButton.setAttribute('data-bs-toggle', 'modal');
-                seeDetailsButton.setAttribute('data-bs-target', `#modal-${listing.id}`);
+                    const seeDetailsButton = document.createElement('button');
+                    seeDetailsButton.classList.add('btn', 'btn-outline-success');
+                    seeDetailsButton.textContent = 'See details';
+                    seeDetailsButton.setAttribute('data-bs-toggle', 'modal');
+                    seeDetailsButton.setAttribute('data-bs-target', `#modal-${listing.id}`);
 
-                listingFooter.appendChild(listingUser);
-                listingFooter.appendChild(seeDetailsButton);
+                    listingFooter.appendChild(listingUser);
+                    listingFooter.appendChild(seeDetailsButton);
 
-                listingDetails.appendChild(listingTitle);
-                listingDetails.appendChild(listingDescription);
+                    listingDetails.appendChild(listingTitle);
+                    listingDetails.appendChild(listingDescription);
 
-                listingContent.appendChild(listingImage);
-                listingContent.appendChild(listingDetails);
+                    listingContent.appendChild(listingImage);
+                    listingContent.appendChild(listingDetails);
 
-                listingBox.appendChild(listingHeader);
-                listingBox.appendChild(listingContent);
-                listingBox.appendChild(listingFooter);
+                    listingBox.appendChild(listingHeader);
+                    listingBox.appendChild(listingContent);
+                    listingBox.appendChild(listingFooter);
 
-                listingsContainer.appendChild(listingBox);
+                    listingsContainer.appendChild(listingBox);
 
-                // Create modal
-                const modal = document.createElement('div');
-                modal.classList.add('modal', 'fade');
-                modal.id = `modal-${listing.id}`;
-                modal.tabIndex = -1;
-                modal.setAttribute('aria-labelledby', `modalLabel-${listing.id}`);
-                modal.setAttribute('aria-hidden', 'true');
+                    // Create modal
+                    const modal = document.createElement('div');
+                    modal.classList.add('modal', 'fade');
+                    modal.id = `modal-${listing.id}`;
+                    modal.tabIndex = -1;
+                    modal.setAttribute('aria-labelledby', `modalLabel-${listing.id}`);
+                    modal.setAttribute('aria-hidden', 'true');
 
-                const buttonText = listing.listing_type === 'wanted' ? 'Offer' : 'Request this';
-                const badgeClass = listing.listing_type === 'sharing' ? 'badge-sharing' : 'badge-wanted';
-                const badgeText = listing.listing_type === 'sharing' ? 'For Sharing' : 'Wanted';
+                    const buttonText = listing.listing_type === 'wanted' ? 'Offer' : 'Request this';
+                    const badgeClass = listing.listing_type === 'sharing' ? 'badge-sharing' : 'badge-wanted';
+                    const badgeText = listing.listing_type === 'sharing' ? 'For Sharing' : 'Wanted';
 
-                const images = listing.images.map((image, index) => `
-                    <div class="carousel-item ${index === 0 ? 'active' : ''}">
-                        <img src="${image}" class="d-block w-100" alt="Listing Image ${index + 1}">
-                    </div>
-                `).join('');
+                    let modalBodyContent = '';
 
-                modal.innerHTML = `
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <span class="badge ${badgeClass}" style="margin-right: 10px;">${badgeText}</span>
-                                <h5 class="modal-title" id="modalLabel-${listing.id}">
-                                    ${listing.title}
-                                </h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    if (listing.images.length > 0) {
+                        const images = listing.images.map((image, index) => `
+                            <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                                <img src="${image}" class="d-block w-100" alt="Listing Image ${index + 1}">
                             </div>
-                            <div class="modal-body">
-                                <div id="carousel-${listing.id}" class="carousel slide" data-bs-ride="carousel">
-                                    <div class="carousel-indicators">
-                                        ${listing.images.map((_, index) => `
-                                            <button type="button" data-bs-target="#carousel-${listing.id}" data-bs-slide-to="${index}" class="${index === 0 ? 'active' : ''}" aria-current="${index === 0 ? 'true' : 'false'}" aria-label="Slide ${index + 1}"></button>
-                                        `).join('')}
-                                    </div>
-                                    <div class="carousel-inner">
-                                        ${images}
-                                    </div>
-                                    <button class="carousel-control-prev" type="button" data-bs-target="#carousel-${listing.id}" data-bs-slide="prev">
-                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                        <span class="visually-hidden">Previous</span>
-                                    </button>
-                                    <button class="carousel-control-next" type="button" data-bs-target="#carousel-${listing.id}" data-bs-slide="next">
-                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                        <span class="visually-hidden">Next</span>
-                                    </button>
+                        `).join('');
+
+                        modalBodyContent = `
+                            <div id="carousel-${listing.id}" class="carousel slide" data-bs-ride="carousel">
+                                <div class="carousel-indicators">
+                                    ${listing.images.map((_, index) => `
+                                        <button type="button" data-bs-target="#carousel-${listing.id}" data-bs-slide-to="${index}" class="${index === 0 ? 'active' : ''}" aria-current="${index === 0 ? 'true' : 'false'}" aria-label="Slide ${index + 1}"></button>
+                                    `).join('')}
                                 </div>
-                                <div class="mt-3">
-                                    <p>${listing.listing_description}</p>
-                                    <p><strong>Location:</strong> ${listing.location_name}</p>
-                                    <p><strong>Listed by:</strong> ${listing.username}</p>
-                                    <p><strong>Posted:</strong> ${timeElapsedString(listing.time_added)}</p>
-                                    <div id="map-${listing.id}" style="height: 400px; width: 100%;"></div>
-                                    <textarea class="form-control mt-3" placeholder="Request message"></textarea>
+                                <div class="carousel-inner">
+                                    ${images}
                                 </div>
+                                <button class="carousel-control-prev" type="button" data-bs-target="#carousel-${listing.id}" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Previous</span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#carousel-${listing.id}" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Next</span>
+                                </button>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="button" class="btn btn-outline-success btn-request">${buttonText}</button>
+                        `;
+                    } else {
+                        modalBodyContent = `<img src="${placeholderImage}" class="d-block w-100" alt="No Image Available">`;
+                    }
+
+                    modal.innerHTML = `
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <span class="badge ${badgeClass}" style="margin-right: 10px;">${badgeText}</span>
+                                    <h5 class="modal-title" id="modalLabel-${listing.id}">
+                                        ${listing.title}
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    ${modalBodyContent}
+                                    <div class="mt-3">
+                                        <p>${listing.listing_description}</p>
+                                        <p><strong>Location:</strong> ${listing.location_name}</p>
+                                        <p><strong>Listed by:</strong> ${listing.username}</p>
+                                        <p><strong>Posted:</strong> ${timeElapsedString(listing.time_added)}</p>
+                                        <div id="map-${listing.id}" style="height: 400px; width: 100%;"></div>
+                                        <textarea class="form-control mt-3" placeholder="Request message"></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-outline-success btn-request">${buttonText}</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    `;
 
-                document.body.appendChild(modal);
+                    document.body.appendChild(modal);
 
-                // Geocode the user's postcode and initialize the Leaflet map
-                fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${userPostcode}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.length > 0) {
-                            const lat = data[0].lat;
-                            const lon = data[0].lon;
+                    // Geocode the user's postcode and initialize the Leaflet map
+                    fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${userPostcode}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.length > 0) {
+                                const lat = data[0].lat;
+                                const lon = data[0].lon;
 
-                            const map = L.map(`map-${listing.id}`).setView([lat, lon], 13);
+                                const map = L.map(`map-${listing.id}`).setView([lat, lon], 13);
 
-                            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                maxZoom: 19,
-                            }).addTo(map);
+                                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                    maxZoom: 19,
+                                }).addTo(map);
 
-                            L.circle([lat, lon], {
-                                color: '#5CB853',
-                                fillColor: '#5CB853',
-                                fillOpacity: 0.5,
-                                radius: 1000 // Radius in meters
-                            }).addTo(map);
+                                L.circle([lat, lon], {
+                                    color: '#5CB853',
+                                    fillColor: '#5CB853',
+                                    fillOpacity: 0.5,
+                                    radius: 1000 // Radius in meters
+                                }).addTo(map);
 
-                            // Invalidate map size after the modal is shown
-                            const modalElement = document.getElementById(`modal-${listing.id}`);
-                            modalElement.addEventListener('shown.bs.modal', () => {
-                                map.invalidateSize();
-                            });
-                        }
-                    })
-                    .catch(error => console.error('Error:', error));
-            });
+                                // Invalidate map size after the modal is shown
+                                const modalElement = document.getElementById(`modal-${listing.id}`);
+                                modalElement.addEventListener('shown.bs.modal', () => {
+                                    map.invalidateSize();
+                                });
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                });
 
-            offset += limit;
-            if (data.length < limit) {
-                document.getElementById('load-more').style.display = 'none';
-            } else {
-                document.getElementById('load-more').style.display = 'block';
-            }
-        })
-        .catch(error => console.error('Error:', error));
-}
+                offset += limit;
+                if (data.length < limit) {
+                    document.getElementById('load-more').style.display = 'none';
+                } else {
+                    document.getElementById('load-more').style.display = 'block';
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
 
-document.getElementById('load-more').addEventListener('click', loadListings);
+    document.getElementById('load-more').addEventListener('click', loadListings);
 
-document.getElementById('filter-all').addEventListener('click', () => {
-    offset = 0;
-    currentFilter = 'all';
-    loadListings();
-});
+    document.getElementById('filter-all').addEventListener('click', () => {
+        offset = 0;
+        currentFilter = 'all';
+        loadListings();
+    });
 
-document.getElementById('filter-sharing').addEventListener('click', () => {
-    offset = 0;
-    currentFilter = 'sharing';
-    loadListings();
-});
+    document.getElementById('filter-sharing').addEventListener('click', () => {
+        offset = 0;
+        currentFilter = 'sharing';
+        loadListings();
+    });
 
-document.getElementById('filter-wanted').addEventListener('click', () => {
-    offset = 0;
-    currentFilter = 'wanted';
-    loadListings();
-});
+    document.getElementById('filter-wanted').addEventListener('click', () => {
+        offset = 0;
+        currentFilter = 'wanted';
+        loadListings();
+    });
 
-loadListings(); // Initial load
+    loadListings(); // Initial load
 </script>
 </body>
 </html>

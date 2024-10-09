@@ -1,10 +1,19 @@
 <?php
+session_start();
+
+// Redirect non-logged-in users to the sign-in page
+if (!isset($_SESSION['loggedin'])) {
+    header('Location: signin.php');
+    exit;
+}
+
 include 'connection.php';
 
 $offset = isset($_GET['offset']) ? intval($_GET['offset']) : 0;
 $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 20;
 $locationIds = isset($_GET['locationIds']) ? $_GET['locationIds'] : '';
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
+$search = isset($_GET['search']) ? $_GET['search'] : '';
 
 if (empty($locationIds)) {
     echo json_encode([]);
@@ -33,6 +42,11 @@ if ($filter === 'sharing') {
     $sql .= " AND l.listing_type = 'wanted'";
 }
 
+if (!empty($search)) {
+    $searchTerm = '%' . $search . '%';
+    $sql .= " AND (l.title LIKE ? OR l.listing_description LIKE ?)";
+}
+
 $sql .= " GROUP BY l.id ORDER BY l.time_added DESC LIMIT ?, ?";
 
 $stmt = $conn->prepare($sql);
@@ -41,21 +55,22 @@ if (!$stmt) {
     exit;
 }
 
-// Bind dynamic location IDs and offset, limit parameters
-$params = array_merge($locationIdsArray, [$offset, $limit]);
-$stmt->bind_param(str_repeat('i', count($locationIdsArray)) . 'ii', ...$params);
+$params = array_merge($locationIdsArray);
+if (!empty($search)) {
+    $params[] = $searchTerm;
+    $params[] = $searchTerm;
+}
+$params[] = $offset;
+$params[] = $limit;
+
+$stmt->bind_param(str_repeat('i', count($locationIdsArray)) . (!empty($search) ? 'ss' : '') . 'ii', ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 
 $listings = [];
 while ($row = $result->fetch_assoc()) {
-    // Determine badge color based on listing type
     $badgeClass = ($row['listing_type'] === 'wanted') ? 'badge-wanted' : 'badge-sharing';
-    
-    // Split the concatenated image URLs into an array
     $images = array_filter(explode(',', $row['images']));
-    
-    // Construct the listing object
     $listing = [
         'id' => $row['id'],
         'title' => $row['title'],
@@ -67,8 +82,6 @@ while ($row = $result->fetch_assoc()) {
         'listing_type' => $row['listing_type'],
         'badge_class' => $badgeClass
     ];
-
-    // Add the listing object to the array
     $listings[] = $listing;
 }
 

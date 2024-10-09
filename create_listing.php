@@ -122,44 +122,7 @@ $conn->close();
 <body class="p-3 m-0 border-0 bd-example m-0 border-0">
 
 <!-- Navbar STARTS here -->
-<nav class="navbar navbar-expand-lg bg-body-tertiary">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="index.php">ShareNest</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
-            <ul class="navbar-nav mb-2 mb-lg-0">
-                <li class="nav-item spacer">
-                    <a class="btn btn-outline-success" href="my_nest.php">My Nest</a>
-                </li>
-                <li class="nav-item spacer">
-                    <a class="btn btn-outline-success" href="create_listing.php">Create Listing</a>
-                </li>
-                <li class="nav-item spacer"></li>
-                <?php if (isset($_SESSION['loggedin'])) { ?>
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span class="me-2">
-                                <i class="fa fa-user"></i>
-                            </span>
-                            Hi, <?php echo htmlspecialchars($_SESSION['username']); ?>
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li class="nav-item"><a class="nav-link" href="profile.php">My Profile</a></li>
-                            <li class="nav-item"><a class="nav-link" href="join_location.php">My Locations</a></li>
-                            <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
-                        </ul>
-                    </li>
-                <?php } else { ?>
-                    <li class="nav-item">
-                        <a class="btn btn-outline-success" href="signin.php">Sign in</a>
-                    </li>
-                <?php } ?>
-            </ul>
-        </div>
-    </div>
-</nav>
+<?php include 'navbar.php'; ?>
 <!-- Navbar ENDS here -->
 
 <!-- Listing Creation Form STARTS here -->
@@ -193,18 +156,18 @@ $conn->close();
             <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                 <div class="mb-3">
-                    <label for="title" class="form-label">Title:</label>
+                    <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="title" name="title" required>
                 </div>
                 <div class="mb-3">
-                    <label for="listing_type" class="form-label">Listing Type:</label>
+                    <label for="listing_type" class="form-label">Listing Type <span class="text-danger">*</span></label>
                     <select class="form-select" id="listing_type" name="listing_type" required>
                         <option value="sharing">For Sharing</option>
                         <option value="wanted">Wanted</option>
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label for="location" class="form-label">Location:</label>
+                    <label for="location" class="form-label">Location <span class="text-danger">*</span></label>
                     <select class="form-select" id="location" name="location_id" required>
                         <option value="" disabled selected>Select Location</option>
                         <!-- Populate with locations where the user belongs -->
@@ -225,15 +188,15 @@ $conn->close();
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label for="listing_description" class="form-label">Description:</label>
+                    <label for="listing_description" class="form-label">Description <span class="text-danger">*</span></label>
                     <textarea class="form-control" id="listing_description" name="listing_description" rows="4" required></textarea>
                 </div>
                 <div class="mb-3">
                     <label for="images" class="form-label">Images:</label>
-                    <input type="file" class="form-control" id="images" name="images[]" multiple accept="image/*" required>
+                    <input type="file" class="form-control" id="images" name="images[]" multiple accept="image/*">
                     <div id="imageHelp" class="form-text">You can upload up to 5 images.</div>
                 </div>
-                <button type="submit" class="btn btn-primary">Create Listing</button>
+                <button type="submit" class="btn btn-outline-success">Create Listing</button>
             </form>
         <?php
         } else {
@@ -245,23 +208,7 @@ $conn->close();
 <!-- Listing Creation Form ENDS here -->
 
 <!-- Footer STARTS here -->
-<footer class="text-white py-4">
-    <div class="container">
-        <div class="row">
-            <div class="col-md-6">
-                <h5>About Us</h5>
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam ut tortor nisi. In hac habitasse platea dictumst.</p>
-            </div>
-            <div class="col-md-6">
-                <h5>Contact Us</h5>
-                <ul class="list-unstyled">
-                    <li>Email: info@yoursite.com</li>
-                    <li>Phone: +123-456-7890</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</footer>
+<?php // include 'footer.php'; ?>
 <!-- Footer ENDS here -->
 
 <!-- Bootstrap Bundle with Popper -->
