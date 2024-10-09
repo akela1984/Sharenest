@@ -1,5 +1,5 @@
 <?php
-session_start();
+include 'session_timeout.php';
 
 // Redirect non-logged-in users to the sign-in page
 if (!isset($_SESSION['loggedin'])) {
@@ -140,8 +140,13 @@ $unreadConversations = $conversations_data['unread_conversations'];
 $totalMessages = $totalConversations;
 $unreadMessages = $unreadConversations;
 
-// Dummy data for statistics (replace with actual queries)
-$greenPoints = 120;  // Replace with actual query to get green points
+// Fetch green points for the user
+$sql_green_points = "SELECT green_points FROM users WHERE id = ?";
+$stmt_green_points = $conn->prepare($sql_green_points);
+$stmt_green_points->bind_param("i", $userId);
+$stmt_green_points->execute();
+$result_green_points = $stmt_green_points->get_result();
+$greenPoints = $result_green_points->fetch_assoc()['green_points'];
 
 $limit = 10; // Number of entries to show per page
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
@@ -447,13 +452,17 @@ $total_pages = ceil($total_listings / $limit);
         });
 
         // Green Points Chart
+        const greenPoints = <?php echo $greenPoints; ?>;
+        const greenPointsData = greenPoints > 0 ? [greenPoints, 0] : [1, 0];
+        const greenPointsColors = greenPoints > 0 ? ['#28a745', '#28a745'] : ['#e9ecef', '#e9ecef'];
+
         const greenPointsCtx = document.getElementById('greenPointsChart').getContext('2d');
         new Chart(greenPointsCtx, {
             type: 'doughnut',
             data: {
                 datasets: [{
-                    data: [<?php echo $greenPoints; ?>, 0], // Always full circle
-                    backgroundColor: ['#28a745', '#28a745']
+                    data: greenPointsData, // Dynamic data based on green points
+                    backgroundColor: greenPointsColors // Dynamic color based on green points
                 }]
             },
             options: {
@@ -466,5 +475,6 @@ $total_pages = ceil($total_listings / $limit);
         });
     });
 </script>
+
 </body>
 </html>

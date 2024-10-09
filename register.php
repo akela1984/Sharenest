@@ -1,5 +1,5 @@
 <?php
-session_start();
+include 'session_timeout.php';
 
 // Redirect logged-in users to the homepage
 if (isset($_SESSION['loggedin'])) {

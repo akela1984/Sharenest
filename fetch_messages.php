@@ -1,5 +1,5 @@
 <?php
-session_start();
+include 'session_timeout.php';
 include 'connection.php';
 
 if (!isset($_GET['conversation_id'])) {

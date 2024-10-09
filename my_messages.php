@@ -1,6 +1,6 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    include 'session_timeout.php';
 }
 
 // Redirect non-logged-in users to the sign-in page

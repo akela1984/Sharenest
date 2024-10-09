@@ -1,5 +1,5 @@
 <?php
-session_start();
+include 'session_timeout.php';
 
 // Redirect non-logged-in users to the sign-in page
 if (!isset($_SESSION['loggedin'])) {
@@ -15,7 +15,13 @@ $error_message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($_POST['listing_id'])) {
     $sender_id = $_SESSION['user_id'];
     $listing_id = intval($_POST['listing_id']);
-    $message = $_POST['message'];
+    $message = htmlspecialchars(trim($_POST['message']), ENT_QUOTES, 'UTF-8');
+
+    if (strlen($message) < 2) {
+        $_SESSION['message'] = "Error: Message must be at least 2 characters long.";
+        header('Location: my_nest.php');
+        exit;
+    }
 
     // Fetch the recipient_id from the listings table
     $sql = "SELECT user_id FROM listings WHERE id = ?";
@@ -33,10 +39,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
     $listing = $result->fetch_assoc();
     $recipient_id = $listing['user_id'];
 
-    // Debugging: Display sender_id and recipient_id
-    echo "Sender ID: $sender_id<br>";
-    echo "Recipient ID: $recipient_id<br>";
-
     // Verify both sender and recipient exist in the users table
     $sql = "SELECT id FROM users WHERE id IN (?, ?)";
     $stmt = $conn->prepare($sql);
@@ -45,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
     $result = $stmt->get_result();
 
     if ($result->num_rows < 2) {
-        $_SESSION['message'] = "Error: One or both users do not exist. Sender ID: $sender_id, Recipient ID: $recipient_id";
+        $_SESSION['message'] = "You can't send a message to yourself!";
         header('Location: my_nest.php');
         exit;
     }
@@ -352,6 +354,7 @@ $locationIdsStr = implode(',', $locationIds);
         <div id="listings-container" class="mt-3">
             <!-- Listings will be loaded here -->
         </div>
+        <div id="no-results-message" class="alert alert-info" style="display: none;">No listings found for your search.</div>
         <div class="btn-container">
             <button id="load-more" class="btn btn-outline-success" style="display: none;">Show more</button>
         </div>
@@ -472,6 +475,15 @@ $locationIdsStr = implode(',', $locationIds);
                 if (offset === 0) {
                     listingsContainer.innerHTML = ''; // Clear previous listings if loading from the beginning
                 }
+
+                if (data.length === 0) {
+                    document.getElementById('no-results-message').style.display = 'block';
+                    document.getElementById('load-more').style.display = 'none';
+                    return;
+                } else {
+                    document.getElementById('no-results-message').style.display = 'none';
+                }
+
                 data.forEach(listing => {
                     const listingBox = document.createElement('div');
                     listingBox.classList.add('listing-box');
@@ -614,8 +626,8 @@ $locationIdsStr = implode(',', $locationIds);
                                         <p><strong>Listed by:</strong> ${listing.username}</p>
                                         <p><strong>Posted:</strong> ${timeElapsedString(listing.time_added)}</p>
                                         ${listing.postcode ? `<div id="map-${listing.id}" style="height: 400px; width: 100%;"></div>` : ''}
-                                        <form action="my_nest.php" method="POST">
-                                            <textarea name="message" class="form-control mt-3" placeholder="Type your message here..."></textarea>
+                                        <form action="my_nest.php" method="POST" onsubmit="return validateMessage(${listing.id});">
+                                            <textarea name="message" class="form-control mt-3" placeholder="Type your message here..." minlength="2" required></textarea>
                                             <input type="hidden" name="listing_id" value="${listing.id}">
                                             <button type="submit" class="btn btn-primary mt-2 d-none" id="send-message-${listing.id}">Send</button>
                                         </form>
@@ -701,6 +713,15 @@ $locationIdsStr = implode(',', $locationIds);
     });
 
     loadListings(); // Initial load
+
+    function validateMessage(listingId) {
+        const textarea = document.querySelector(`#modal-${listingId} textarea[name="message"]`);
+        if (textarea.value.trim().length < 2) {
+            alert("Message must be at least 2 characters long.");
+            return false;
+        }
+        return true;
+    }
 </script>
 
 </body>

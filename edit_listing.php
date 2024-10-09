@@ -1,5 +1,5 @@
 <?php
-session_start();
+include 'session_timeout.php';
 
 // Redirect non-logged-in users to the sign-in page
 if (!isset($_SESSION['loggedin'])) {
@@ -12,6 +12,11 @@ include 'connection.php';
 $success_message = '';
 $error_message = '';
 
+// Enable error logging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 // Fetch the username from the session
 $username = $_SESSION['username'];
 
@@ -23,6 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $listing_type = $_POST['listing_type'];
         $state = $_POST['state'];
 
+        // Debug: Log the input values
+        echo "Updating listing: ID=$listing_id, Title=$title, Description=$listing_description, Type=$listing_type, State=$state<br>";
+
         // Update listing details
         $sql_update = "
             UPDATE listings 
@@ -30,9 +38,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             WHERE id = ? AND user_id = (SELECT id FROM users WHERE username = ?)
         ";
         $stmt_update = $conn->prepare($sql_update);
+        if ($stmt_update === false) {
+            echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
+        }
         $stmt_update->bind_param("ssssis", $title, $listing_description, $listing_type, $state, $listing_id, $_SESSION['username']);
         
         if ($stmt_update->execute()) {
+            echo "Listing updated successfully.<br>";
             $success_message = "Listing updated successfully.";
 
             // Handle image upload
@@ -40,6 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Delete old images
                 $sql_images = "SELECT image_url FROM listing_images WHERE listing_id = ?";
                 $stmt_images = $conn->prepare($sql_images);
+                if ($stmt_images === false) {
+                    echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
+                }
                 $stmt_images->bind_param("i", $listing_id);
                 $stmt_images->execute();
                 $result_images = $stmt_images->get_result();
@@ -54,6 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Delete old image records from database
                 $sql_delete_images = "DELETE FROM listing_images WHERE listing_id = ?";
                 $stmt_delete_images = $conn->prepare($sql_delete_images);
+                if ($stmt_delete_images === false) {
+                    echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
+                }
                 $stmt_delete_images->bind_param("i", $listing_id);
                 $stmt_delete_images->execute();
 
@@ -67,6 +85,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (move_uploaded_file($tmp_name, $file_path)) {
                         $sql_insert_image = "INSERT INTO listing_images (listing_id, image_url) VALUES (?, ?)";
                         $stmt_insert_image = $conn->prepare($sql_insert_image);
+                        if ($stmt_insert_image === false) {
+                            echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
+                        }
                         $stmt_insert_image->bind_param("is", $listing_id, $file_path);
                         $stmt_insert_image->execute();
                     }
@@ -75,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         } else {
             $error_message = "Error updating listing.";
+            echo 'Execute failed: ' . htmlspecialchars($stmt_update->error) . "<br>";
         }
     } elseif (isset($_POST['delete_listing'])) {
         $listing_id = intval($_POST['listing_id']);
@@ -82,6 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Fetch image URLs to delete files
         $sql_images = "SELECT image_url FROM listing_images WHERE listing_id = ?";
         $stmt_images = $conn->prepare($sql_images);
+        if ($stmt_images === false) {
+            echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
+        }
         $stmt_images->bind_param("i", $listing_id);
         $stmt_images->execute();
         $result_images = $stmt_images->get_result();
@@ -96,12 +121,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Delete from listing_images
         $sql_delete_images = "DELETE FROM listing_images WHERE listing_id = ?";
         $stmt_delete_images = $conn->prepare($sql_delete_images);
+        if ($stmt_delete_images === false) {
+            echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
+        }
         $stmt_delete_images->bind_param("i", $listing_id);
         $stmt_delete_images->execute();
 
         // Delete from listings
         $sql_delete_listing = "DELETE FROM listings WHERE id = ? AND user_id = (SELECT id FROM users WHERE username = ?)";
         $stmt_delete_listing = $conn->prepare($sql_delete_listing);
+        if ($stmt_delete_listing === false) {
+            echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
+        }
         $stmt_delete_listing->bind_param("is", $listing_id, $_SESSION['username']);
         
         if ($stmt_delete_listing->execute()) {
@@ -109,6 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         } else {
             $error_message = "Error deleting listing.";
+            echo 'Execute failed: ' . htmlspecialchars($stmt_delete_listing->error) . "<br>";
         }
     }
 } else {
@@ -118,6 +150,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Fetch listing details
 $sql = "SELECT * FROM listings WHERE id = ? AND user_id = (SELECT id FROM users WHERE username = ?)";
 $stmt = $conn->prepare($sql);
+if ($stmt === false) {
+    echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
+}
 $stmt->bind_param("is", $listing_id, $_SESSION['username']);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -132,6 +167,9 @@ if ($result->num_rows > 0) {
 // Fetch listing images
 $sql_images = "SELECT image_url FROM listing_images WHERE listing_id = ?";
 $stmt_images = $conn->prepare($sql_images);
+if ($stmt_images === false) {
+    echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
+}
 $stmt_images->bind_param("i", $listing_id);
 $stmt_images->execute();
 $result_images = $stmt_images->get_result();
@@ -172,7 +210,7 @@ while ($row = $result_images->fetch_assoc()) {
         </div>
     <?php endif; ?>
 
-    <form action="my_dashboard.php" method="POST" enctype="multipart/form-data">
+    <form action="edit_listing.php" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="listing_id" value="<?php echo $listing['id']; ?>">
         
         <div class="mb-3">
@@ -223,9 +261,7 @@ while ($row = $result_images->fetch_assoc()) {
                 <button type="submit" name="update_listing" class="btn btn-outline-success me-2">Update Listing</button>
                 <button type="submit" name="delete_listing" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to delete this listing?');">Delete Listing</button>
             </div>
-            <form action="my_listings.php" method="get">
-                <button type="submit" class="btn btn-outline-warning">Back to My Listings</button>
-            </form>
+            <a href="my_dashboard.php" class="btn btn-outline-warning">Back to Dashboard</a>
         </div>
     </form>
 </div>

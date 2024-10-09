@@ -1,5 +1,5 @@
 <?php
-session_start();
+include 'session_timeout.php';
 
 // Redirect non-logged-in users to the sign-in page
 if (!isset($_SESSION['loggedin'])) {

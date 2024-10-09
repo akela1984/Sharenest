@@ -1,5 +1,5 @@
 <?php
-session_start();
+include 'session_timeout.php';
 include 'connection.php';
 
 // Enable error reporting

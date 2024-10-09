@@ -1,5 +1,5 @@
 <?php
-session_start();
+include 'session_timeout.php';
 
 // Redirect non-logged-in users to the sign-in page
 if (!isset($_SESSION['loggedin'])) {
@@ -53,7 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($userLocations)) {
     
     if ($stmt_insert->execute()) {
         $listing_id = $stmt_insert->insert_id;
-        $success_message = "Listing created successfully.";
+        $success_message = "Listing created successfully. You have earned a green point!";
+
+        // Update user green points
+        $sql_update_points = "UPDATE users SET green_points = green_points + 1 WHERE id = ?";
+        $stmt_update_points = $conn->prepare($sql_update_points);
+        $stmt_update_points->bind_param("i", $user_id);
+        $stmt_update_points->execute();
 
         // Handle image upload
         if (!empty($_FILES['images']['name'][0])) {
