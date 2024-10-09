@@ -40,6 +40,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_listing_id']))
         $stmt_delete_images->bind_param("i", $listing_id);
         $stmt_delete_images->execute();
 
+        // Delete all related messages and conversation members
+        $sql_delete_messages = "DELETE m FROM messages m
+                                JOIN conversations c ON m.conversation_id = c.id
+                                WHERE c.listing_id = ?";
+        $stmt_delete_messages = $conn->prepare($sql_delete_messages);
+        $stmt_delete_messages->bind_param("i", $listing_id);
+        $stmt_delete_messages->execute();
+
+        $sql_delete_conversation_members = "DELETE cm FROM conversation_members cm
+                                            JOIN conversations c ON cm.conversation_id = c.id
+                                            WHERE c.listing_id = ?";
+        $stmt_delete_conversation_members = $conn->prepare($sql_delete_conversation_members);
+        $stmt_delete_conversation_members->bind_param("i", $listing_id);
+        $stmt_delete_conversation_members->execute();
+
+        // Delete from conversations
+        $sql_delete_conversations = "DELETE FROM conversations WHERE listing_id = ?";
+        $stmt_delete_conversations = $conn->prepare($sql_delete_conversations);
+        $stmt_delete_conversations->bind_param("i", $listing_id);
+        $stmt_delete_conversations->execute();
+
         // Delete from listings
         $sql_delete_listing = "DELETE FROM listings WHERE id = ?";
         $stmt_delete_listing = $conn->prepare($sql_delete_listing);
@@ -96,9 +117,30 @@ while ($row = $resultListings->fetch_assoc()) {
     }
 }
 
+// Fetch total conversations and conversations with unread messages
+$sql_conversations = "
+    SELECT 
+        COUNT(DISTINCT c.id) AS total_conversations,
+        COUNT(DISTINCT CASE WHEN m.read = 0 AND m.recipient_id = ? THEN c.id END) AS unread_conversations
+    FROM conversations c
+    JOIN conversation_members cm ON c.id = cm.conversation_id
+    LEFT JOIN messages m ON c.id = m.conversation_id
+    WHERE cm.user_id = ?";
+
+$stmt_conversations = $conn->prepare($sql_conversations);
+$stmt_conversations->bind_param("ii", $userId, $userId);
+$stmt_conversations->execute();
+$result_conversations = $stmt_conversations->get_result();
+$conversations_data = $result_conversations->fetch_assoc();
+
+$totalConversations = $conversations_data['total_conversations'];
+$unreadConversations = $conversations_data['unread_conversations'];
+
+// Fetch total unread messages for the circle chart
+$totalMessages = $totalConversations;
+$unreadMessages = $unreadConversations;
+
 // Dummy data for statistics (replace with actual queries)
-$totalMessages = 10; // Replace with actual query to get total messages
-$unreadMessages = 3; // Replace with actual query to get unread messages
 $greenPoints = 120;  // Replace with actual query to get green points
 
 $limit = 10; // Number of entries to show per page
@@ -211,7 +253,7 @@ $total_pages = ceil($total_listings / $limit);
                         <canvas id="messagesChart" width="100" height="100"></canvas>
                         <div class="circle-text"><?php echo $unreadMessages; ?>/<?php echo $totalMessages; ?></div>
                     </div>
-                    <h3 style="font-size: 1rem;">Messages</h3>
+                    <h3 style="font-size: 1rem;">Conversations</h3>
                     <div class="legend">
                         <span class="blue"></span> Unread<br>
                         <span class="grey"></span> Total

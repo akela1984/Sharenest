@@ -1,5 +1,21 @@
 <?php
 session_start(); // Ensure session is started
+
+include 'connection.php'; // Include the connection to your database
+
+$unreadConversationsCount = 0;
+
+if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) {
+    $userId = $_SESSION['user_id'];
+    $sql_unread_count = "SELECT COUNT(DISTINCT conversation_id) AS unread_count 
+                         FROM messages 
+                         WHERE recipient_id = ? AND `read` = FALSE";
+    $stmt_unread_count = $conn->prepare($sql_unread_count);
+    $stmt_unread_count->bind_param("i", $userId);
+    $stmt_unread_count->execute();
+    $result_unread_count = $stmt_unread_count->get_result();
+    $unreadConversationsCount = $result_unread_count->fetch_assoc()['unread_count'];
+}
 ?>
 
 <nav class="navbar navbar-expand-lg bg-body-tertiary">
@@ -21,11 +37,16 @@ session_start(); // Ensure session is started
                 <li class="nav-item spacer"></li>
                 <!-- Spacer end -->
                 <?php if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) { ?>
-                    <li class="nav-item">
+                    <li class="nav-item position-relative">
                         <a class="nav-link" href="my_messages.php">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="width: 24px; height: 24px; fill: currentColor;">
                                 <path d="M64 112c-8.8 0-16 7.2-16 16v22.1L220.5 291.7c20.7 17 50.4 17 71.1 0L464 150.1V128c0-8.8-7.2-16-16-16H64zM48 212.2V384c0 8.8 7.2 16 16 16H448c8.8 0 16-7.2 16-16V212.2L322 328.8c-38.4 31.5-93.7 31.5-132 0L48 212.2zM0 128C0 92.7 28.7 64 64 64H448c35.3 0 64 28.7 64 64V384c0 35.3-28.7 64-64 64H64c-35.3 0-64-28.7-64-64V128z"/>
                             </svg>
+                            <?php if ($unreadConversationsCount > 0) { ?>
+                                <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">
+                                    <?php echo $unreadConversationsCount; ?>
+                                </span>
+                            <?php } ?>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -49,6 +70,7 @@ session_start(); // Ensure session is started
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li class="nav-item"><a class="dropdown-item" href="my_dashboard.php">Dashboard</a></li>
+                            <li class="nav-item"><a class="dropdown-item" href="my_messages.php">My Messages</a></li>
                             <li class="nav-item"><a class="dropdown-item" href="profile.php">My Profile</a></li>
                             <li class="nav-item"><a class="dropdown-item" href="join_location.php">My Locations</a></li>
                             <li class="nav-item"><a class="dropdown-item" href="logout.php">Logout</a></li>
@@ -91,5 +113,33 @@ session_start(); // Ensure session is started
         .dropdown-menu .nav-item {
             display: block;
         }
+    }
+    .badge {
+        padding: 0.5em 0.75em;
+        font-size: 0.75rem;
+        font-weight: 700;
+        line-height: 1;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.375rem;
+    }
+    .position-absolute {
+        position: absolute !important;
+    }
+    .top-0 {
+        top: 0 !important;
+    }
+    .start-100 {
+        left: 100% !important;
+    }
+    .translate-middle {
+        transform: translate(-50%, -50%) !important;
+    }
+    .rounded-circle {
+        border-radius: 50% !important;
+    }
+    .bg-danger {
+        background-color: #dc3545 !important;
     }
 </style>

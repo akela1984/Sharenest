@@ -172,7 +172,7 @@ while ($row = $result_images->fetch_assoc()) {
         </div>
     <?php endif; ?>
 
-    <form action="edit_listing.php" method="POST" enctype="multipart/form-data">
+    <form action="my_dashboard.php" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="listing_id" value="<?php echo $listing['id']; ?>">
         
         <div class="mb-3">

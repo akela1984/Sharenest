@@ -9,6 +9,95 @@ if (!isset($_SESSION['loggedin'])) {
 
 include 'connection.php';
 
+$message_sent = false;
+$error_message = '';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($_POST['listing_id'])) {
+    $sender_id = $_SESSION['user_id'];
+    $listing_id = intval($_POST['listing_id']);
+    $message = $_POST['message'];
+
+    // Fetch the recipient_id from the listings table
+    $sql = "SELECT user_id FROM listings WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $listing_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows === 0) {
+        $_SESSION['message'] = "Error: Listing does not exist.";
+        header('Location: my_nest.php');
+        exit;
+    }
+
+    $listing = $result->fetch_assoc();
+    $recipient_id = $listing['user_id'];
+
+    // Debugging: Display sender_id and recipient_id
+    echo "Sender ID: $sender_id<br>";
+    echo "Recipient ID: $recipient_id<br>";
+
+    // Verify both sender and recipient exist in the users table
+    $sql = "SELECT id FROM users WHERE id IN (?, ?)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $sender_id, $recipient_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows < 2) {
+        $_SESSION['message'] = "Error: One or both users do not exist. Sender ID: $sender_id, Recipient ID: $recipient_id";
+        header('Location: my_nest.php');
+        exit;
+    }
+
+    // Check if a conversation already exists for this listing
+    $sql = "SELECT id FROM conversations WHERE listing_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $listing_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $conversation = $result->fetch_assoc();
+        $conversation_id = $conversation['id'];
+    } else {
+        // Create a new conversation
+        $conn->begin_transaction();
+        try {
+            $sql = "INSERT INTO conversations (listing_id) VALUES (?)";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("i", $listing_id);
+            $stmt->execute();
+            $conversation_id = $stmt->insert_id;
+
+            // Add members to the conversation
+            $sql = "INSERT INTO conversation_members (conversation_id, user_id) VALUES (?, ?), (?, ?)";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("iiii", $conversation_id, $sender_id, $conversation_id, $recipient_id);
+            $stmt->execute();
+
+            $conn->commit();
+        } catch (Exception $e) {
+            $conn->rollback();
+            $_SESSION['message'] = "Error creating conversation: " . $e->getMessage();
+            header('Location: my_nest.php');
+            exit;
+        }
+    }
+
+    // Insert the message
+    $sql = "INSERT INTO messages (conversation_id, sender_id, recipient_id, message) VALUES (?, ?, ?, ?)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("iiis", $conversation_id, $sender_id, $recipient_id, $message);
+    if ($stmt->execute()) {
+        $_SESSION['message'] = "Message sent successfully!";
+    } else {
+        $_SESSION['message'] = "Error sending message.";
+    }
+    header('Location: my_nest.php');
+    exit;
+}
+
 $username = $_SESSION['username'];
 $sql = "SELECT * FROM users WHERE username = ?";
 $stmt = $conn->prepare($sql);
@@ -241,6 +330,9 @@ $locationIdsStr = implode(',', $locationIds);
 
 <div class="container mt-5">
     <h2>Available Listings</h2>
+    <?php if (isset($_SESSION['message'])): ?>
+        <div class="alert alert-info"><?php echo $_SESSION['message']; unset($_SESSION['message']); ?></div>
+    <?php endif; ?>
     <?php if (empty($locationIds)): ?>
         <div class="alert alert-info" role="alert">
             You are not part of any location. Please <a href="join_location.php" class="alert-link">join a location</a> to see listings.
@@ -522,12 +614,16 @@ $locationIdsStr = implode(',', $locationIds);
                                         <p><strong>Listed by:</strong> ${listing.username}</p>
                                         <p><strong>Posted:</strong> ${timeElapsedString(listing.time_added)}</p>
                                         ${listing.postcode ? `<div id="map-${listing.id}" style="height: 400px; width: 100%;"></div>` : ''}
-                                        <textarea class="form-control mt-3" placeholder="Request message"></textarea>
+                                        <form action="my_nest.php" method="POST">
+                                            <textarea name="message" class="form-control mt-3" placeholder="Type your message here..."></textarea>
+                                            <input type="hidden" name="listing_id" value="${listing.id}">
+                                            <button type="submit" class="btn btn-primary mt-2 d-none" id="send-message-${listing.id}">Send</button>
+                                        </form>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    <button type="button" class="btn btn-outline-success btn-request">${buttonText}</button>
+                                    <button type="button" class="btn btn-outline-success btn-request" onclick="document.getElementById('send-message-${listing.id}').click();">${buttonText}</button>
                                 </div>
                             </div>
                         </div>
