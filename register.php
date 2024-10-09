@@ -50,6 +50,8 @@ require 'phpmailer/src/SMTP.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+$error = '';
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Check CSRF token
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
@@ -68,6 +70,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $error = "Invalid email format!";
     } elseif ($password !== $confirmPassword) {
         $error = "Passwords do not match!";
+    } elseif (!preg_match('/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/', $password)) {
+        $error = "Password must be at least 8 characters long, include at least one letter, one number, and one special character from @$!%*#?&.";
     } else {
         // Check if username or email already exists
         $sql = "SELECT * FROM users WHERE email = ? OR username = ?";
@@ -160,25 +164,25 @@ $conn->close();
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-       <!-- Web App Manifest -->
-       <link rel="manifest" href="/manifest.json">
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json">
 
-<!-- Theme Color -->
-<meta name="theme-color" content="#4CAF50">
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#4CAF50">
 
-<!-- iOS-specific meta tags -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Sharenest">
-<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <!-- iOS-specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Sharenest">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 
-<!-- Icons for various devices -->
-<link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png">
-<link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
-<link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+    <!-- Icons for various devices -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
 
-<!-- Link to External PWA Script -->
-<script src="/js/pwa.js" defer></script>
+    <!-- Link to External PWA Script -->
+    <script src="/js/pwa.js" defer></script>
     <title>ShareNest - Register</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -194,7 +198,8 @@ $conn->close();
 <div class="container mt-5 d-flex justify-content-center">
     <div class="col-md-6 col-sm-8">
         <h2>Register</h2>
-        <?php if (isset($error)) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . "</div>"; } ?>
+        <?php if (!empty($error)) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . "</div>"; } ?>
+        <div id="errorMessage" class="alert alert-danger" style="display:none;"></div>
         <form id="registerForm" method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"], ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
             <div class="mb-3">
@@ -208,6 +213,10 @@ $conn->close();
             <div class="mb-3">
                 <label for="password" class="form-label">Password:</label>
                 <input type="password" class="form-control" id="password" name="password" required>
+                <small id="passwordHelp" class="form-text text-muted">
+                    Password must be at least 8 characters long, include at least one letter, one number, and one special character. 
+                    Allowed special characters: @$!%*#?&.
+                </small>
             </div>
             <div class="mb-3">
                 <label for="confirmPassword" class="form-label">Confirm Password:</label>
@@ -229,14 +238,31 @@ $conn->close();
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.getElementById('registerForm').addEventListener('submit', function(event) {
-    const registerButton = document.getElementById('registerButton');
-    const registeringText = document.getElementById('registeringText');
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const errorMessage = document.getElementById('errorMessage');
+    const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
 
-    registerButton.disabled = true;
-    registerButton.style.display = 'none';
-    registeringText.style.display = 'inline';
+    errorMessage.style.display = 'none';
+
+    if (!regex.test(password)) {
+        errorMessage.textContent = 'Password must be at least 8 characters long, include at least one letter, one number, and one special character from @$!%*#?&.';
+        errorMessage.style.display = 'block';
+        event.preventDefault();
+    } else if (password !== confirmPassword) {
+        errorMessage.textContent = 'Passwords do not match!';
+        errorMessage.style.display = 'block';
+        event.preventDefault();
+    } else {
+        const registerButton = document.getElementById('registerButton');
+        const registeringText = document.getElementById('registeringText');
+
+        registerButton.disabled = true;
+        registerButton.style.display = 'none';
+        registeringText.style.display = 'inline';
+    }
 });
 </script>
-    <button id="install-button" style="display: none;">Install Sharenest</button>
+<button id="install-button" style="display: none;">Install Sharenest</button>
 </body>
 </html>

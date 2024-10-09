@@ -9,6 +9,13 @@ if (!isset($_SESSION['loggedin']) || !$_SESSION['loggedin'] || $_SESSION['is_adm
 
 include 'connection.php'; // Include the connection to your database
 
+// Load PHPMailer at the top of the file
+require 'phpmailer/src/Exception.php';
+require 'phpmailer/src/PHPMailer.php';
+require 'phpmailer/src/SMTP.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 // Function to fetch data for tables with pagination and sorting
 function fetch_data($conn, $table, $page, $perPage, $sortColumn, $sortOrder) {
@@ -54,6 +61,60 @@ function delete_listing_images($conn, $user_id) {
         if (file_exists($image_path)) {
             unlink($image_path);
         }
+    }
+}
+
+// Function to send email
+function send_email($to, $subject, $template, $placeholders = []) {
+    global $config;
+
+    $smtpUsername = $config['smtp']['username'];
+    $smtpPassword = $config['smtp']['password'];
+
+    $mail = new PHPMailer(true);
+
+    try {
+        // Server settings
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.livemail.co.uk';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = $smtpUsername;
+        $mail->Password   = $smtpPassword;
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = 587;
+
+        // Recipients
+        $mail->setFrom('no-reply@sharenest.org', 'Sharenest');
+        $mail->addAddress($to);
+
+        // Load HTML template
+        $templatePath = __DIR__ . "/templates/{$template}.html";
+        if (!file_exists($templatePath)) {
+            throw new Exception("Email template not found at $templatePath");
+        }
+        $templateContent = file_get_contents($templatePath);
+
+        // Replace placeholders
+        foreach ($placeholders as $key => $value) {
+            $templateContent = str_replace("{{{$key}}}", htmlspecialchars($value, ENT_QUOTES, 'UTF-8'), $templateContent);
+        }
+
+        // Content
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body    = $templateContent;
+
+        // Embed the image
+        $logoPath = __DIR__ . '/img/sharenest_logo.png';
+        if (!file_exists($logoPath)) {
+            throw new Exception("Logo not found at $logoPath");
+        }
+        $mail->addEmbeddedImage($logoPath, 'sharenest_logo');
+
+        $mail->send();
+    } catch (Exception $e) {
+        error_log("Message could not be sent. Mailer Error: " . htmlspecialchars($mail->ErrorInfo));
+        error_log("Exception: " . htmlspecialchars($e->getMessage()));
     }
 }
 
@@ -123,6 +184,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_listing'])) {
 // Function to delete user data
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
     $user_id = $_POST['user_id'];
+    $reason = $_POST['reason'];
+
+    // Get user email and username before deletion
+    $sql = "SELECT email, username FROM users WHERE id=?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $user = $result->fetch_assoc();
 
     // Delete images associated with the user's listings
     delete_listing_images($conn, $user_id);
@@ -132,6 +202,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
+
+    // Send email notification
+    $template = $reason === 'User Requested' ? 'user_deleted_user_requested' : 'user_deleted_admin_decision';
+    send_email($user['email'], 'Account Deletion Notification', $template, ['username' => $user['username']]);
+
     header('Location: admin_panel.php?tab=users&message=User deleted successfully');
     exit;
 }
@@ -139,11 +214,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
 // Function to delete listing data
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
     $listing_id = $_POST['listing_id'];
+    $reason = $_POST['reason'];
 
+    // Get listing details and user email before deletion
+    $sql = "SELECT listings.title, users.email, users.username 
+            FROM listings 
+            JOIN users ON listings.user_id = users.id 
+            WHERE listings.id=?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $listing_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $listing = $result->fetch_assoc();
+
+    // Delete listing
     $sql = "DELETE FROM listings WHERE id=?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $listing_id);
     $stmt->execute();
+
+    // Send email notification
+    $template = $reason === 'User Requested' ? 'listing_deleted_user_requested' : 'listing_deleted_admin_decision';
+    send_email($listing['email'], 'Listing Deletion Notification', $template, ['username' => $listing['username'], 'title' => $listing['title']]);
+
     header('Location: admin_panel.php?tab=listings&message=Listing deleted successfully');
     exit;
 }
@@ -154,25 +247,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-       <!-- Web App Manifest -->
-       <link rel="manifest" href="/manifest.json">
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json">
 
-<!-- Theme Color -->
-<meta name="theme-color" content="#4CAF50">
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#4CAF50">
 
-<!-- iOS-specific meta tags -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Sharenest">
-<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <!-- iOS-specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Sharenest">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 
-<!-- Icons for various devices -->
-<link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png">
-<link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
-<link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+    <!-- Icons for various devices -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
 
-<!-- Link to External PWA Script -->
-<script src="/js/pwa.js" defer></script>
+    <!-- Link to External PWA Script -->
+    <script src="/js/pwa.js" defer></script>
     <title>Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -249,7 +342,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
                                 <td><?php echo htmlspecialchars($user['created_at']); ?></td>
                                 <td><input type="text" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" class="form-control" disabled></td>
                                 <td><input type="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" class="form-control" disabled></td>
-                                <td><input type="text" name="status" value="<?php echo htmlspecialchars($user['status']); ?>" class="form-control" disabled></td>
+                                <td>
+                                    <select name="status" class="form-select" disabled>
+                                        <option value="inactive" <?php echo $user['status'] == 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                                        <option value="active" <?php echo $user['status'] == 'active' ? 'selected' : ''; ?>>Active</option>
+                                    </select>
+                                </td>
                                 <td><input type="text" name="firstname" value="<?php echo htmlspecialchars($user['firstname']); ?>" class="form-control" disabled></td>
                                 <td><input type="text" name="lastname" value="<?php echo htmlspecialchars($user['lastname']); ?>" class="form-control" disabled></td>
                                 <td><input type="number" name="green_points" value="<?php echo htmlspecialchars($user['green_points']); ?>" class="form-control" disabled></td>
@@ -266,6 +364,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
                                         <button type="button" class="btn btn-warning edit-btn me-2">Edit</button>
                                         <button type="submit" name="update_user" class="btn btn-primary save-btn d-none me-2">Save</button>
                                         <button type="button" class="btn btn-danger delete-btn d-none me-2" data-bs-toggle="modal" data-bs-target="#deleteModal" data-user-id="<?php echo htmlspecialchars($user['id']); ?>">Delete</button>
+                                        <span class="processing-text text-success d-none">Processing...</span>
                                         <button type="button" class="btn btn-secondary cancel-btn d-none">Cancel</button>
                                     </div>
                                 </td>
@@ -346,6 +445,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
                                         <button type="button" class="btn btn-warning edit-btn me-2">Edit</button>
                                         <button type="submit" name="update_listing" class="btn btn-primary save-btn d-none me-2">Save</button>
                                         <button type="button" class="btn btn-danger delete-btn d-none me-2" data-bs-toggle="modal" data-bs-target="#deleteModalListing" data-listing-id="<?php echo htmlspecialchars($listing['id']); ?>">Delete</button>
+                                        <span class="processing-text text-success d-none">Processing...</span>
                                         <button type="button" class="btn btn-secondary cancel-btn d-none">Cancel</button>
                                     </div>
                                 </td>
@@ -393,10 +493,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
                     Are you sure you want to delete this user?
                     <input type="hidden" name="user_id" id="deleteUserId">
                     <input type="hidden" name="delete_user" value="true">
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason for Deletion:</label>
+                        <select name="reason" id="reason" class="form-select" required>
+                            <option value="">Select Reason</option>
+                            <option value="User Requested">User Requested</option>
+                            <option value="Admin Decision">Admin Decision</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Delete</button>
+                    <button type="submit" class="btn btn-danger delete-btn-modal">Delete</button>
+                    <span class="processing-text-modal text-success d-none">Processing...</span>
                 </div>
             </form>
         </div>
@@ -416,10 +525,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
                     Are you sure you want to delete this listing?
                     <input type="hidden" name="listing_id" id="deleteListingId">
                     <input type="hidden" name="delete_listing" value="true">
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason for Deletion:</label>
+                        <select name="reason" id="reason" class="form-select" required>
+                            <option value="">Select Reason</option>
+                            <option value="User Requested">User Requested</option>
+                            <option value="Admin Decision">Admin Decision</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger">Delete</button>
+                    <button type="submit" class="btn btn-danger delete-btn-modal">Delete</button>
+                    <span class="processing-text-modal text-success d-none">Processing...</span>
                 </div>
             </form>
         </div>
@@ -498,8 +616,21 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('d-none');
         });
     });
+
+    // Handle form submission for delete actions
+    document.querySelectorAll('form').forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            const deleteButton = form.querySelector('.delete-btn-modal');
+            const processingText = form.querySelector('.processing-text-modal');
+
+            if (deleteButton && processingText) {
+                deleteButton.classList.add('d-none');
+                processingText.classList.remove('d-none');
+            }
+        });
+    });
 });
 </script>
-    <button id="install-button" style="display: none;">Install Sharenest</button>
+<button id="install-button" style="display: none;">Install Sharenest</button>
 </body>
 </html>
