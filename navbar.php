@@ -1,7 +1,14 @@
 <?php
-session_start(); // Ensure session is started
-
+include 'session_timeout.php';
 include 'connection.php'; // Include the connection to your database
+
+// -----------------------------------------------------------------------------------
+// Check if the user has access REMOVE THIS AFTER GO LIVE
+if (!isset($_SESSION['access_granted'])) {
+    header('Location: comingsoon.php');
+    exit();
+}
+// -----------------------------------------------------------------------------------
 
 $unreadConversationsCount = 0;
 $underReviewCount = 0;
@@ -46,44 +53,11 @@ if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) {
 } else {
     $is_admin = false;
 }
+
+// Determine the name to display
+$displayName = isset($_SESSION['firstname']) && !empty($_SESSION['firstname']) ? $_SESSION['firstname'] : $_SESSION['username'];
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Navbar with Badge Notification</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="path/to/your/custom/styles.css">
-    <style>
-        .hamburger-dot {
-            position: absolute;
-            top: 8px; /* Adjust this value as needed */
-            right: 8px; /* Adjust this value as needed */
-            width: 12px;
-            height: 12px;
-            background-color: red;
-            border-radius: 50%;
-            display: none; /* Initially hidden */
-        }
-        .user-icon {
-            width: 24px;
-            height: 24px;
-            fill: currentColor;
-        }
-        .leaf-icon {
-            width: 24px;
-            height: 24px;
-            fill: green;
-        }
-        .green-points {
-            color: green;
-            display: flex;
-            align-items: center;
-        }
-    </style>
-</head>
-<body>
+
 <nav class="navbar navbar-expand-lg bg-body-tertiary">
     <div class="container-fluid">
         <a class="navbar-brand" href="index.php">
@@ -151,7 +125,7 @@ if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) {
                                     <path d="M399 384.2C376.9 345.8 335.4 320 288 320H224c-47.4 0-88.9 25.8-111 64.2c35.2 39.2 86.2 63.8 143 63.8s107.8-24.7 143-63.8zM0 256a256 256 0 1 1 512 0A256 256 0 1 1 0 256zm256 16a72 72 0 1 0 0-144 72 72 0 1 0 0 144z"/>
                                 </svg>
                             <?php } ?>
-                            <span class="ms-1">Hi, <?php echo htmlspecialchars($_SESSION['username']); ?></span>
+                            <span class="ms-1">Hi, <?php echo htmlspecialchars($displayName); ?></span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li class="nav-item"><a class="dropdown-item" href="my_dashboard.php">Dashboard</a></li>
@@ -182,9 +156,3 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.2/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/js/bootstrap.min.js"></script>
-</body>
-</html>

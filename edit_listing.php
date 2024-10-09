@@ -1,5 +1,12 @@
 <?php
 include 'session_timeout.php';
+include 'connection.php';
+
+// Check if the user has access (this part will be removed after go live)
+if (!isset($_SESSION['access_granted'])) {
+    header('Location: comingsoon.php');
+    exit();
+}
 
 // Redirect non-logged-in users to the sign-in page
 if (!isset($_SESSION['loggedin'])) {
@@ -7,7 +14,10 @@ if (!isset($_SESSION['loggedin'])) {
     exit;
 }
 
-include 'connection.php';
+// Generate CSRF token if it doesn't exist
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 $success_message = '';
 $error_message = '';
@@ -16,6 +26,11 @@ $error_message = '';
 $username = htmlspecialchars($_SESSION['username']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Check CSRF token
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        die("Invalid CSRF token");
+    }
+
     if (isset($_POST['update_listing'])) {
         $listing_id = intval($_POST['listing_id']);
         $title = htmlspecialchars($_POST['title']);
@@ -173,28 +188,64 @@ while ($row = $result_images->fetch_assoc()) {
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-       <!-- Web App Manifest -->
-       <link rel="manifest" href="/manifest.json">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- SEO Meta Tags -->
+    <title>ShareNest - Community for Sharing Unwanted Goods in the Lothian area</title>
 
-<!-- Theme Color -->
-<meta name="theme-color" content="#4CAF50">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-16S7LDQL7H"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
 
-<!-- iOS-specific meta tags -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Sharenest">
-<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    gtag('config', 'G-16S7LDQL7H');
+    </script>
 
-<!-- Icons for various devices -->
-<link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png">
-<link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
-<link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+
+    <meta name="description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta name="keywords" content="share, unwanted goods, free items, community sharing, Lothian, give away, second hand, recycle, reuse">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="ShareNest">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#4CAF50">
+
+    <!-- iOS-specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ShareNest">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
+    <!-- Icons for various devices -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+
+     <!-- Favicon for Browsers -->
+     <link rel="icon" href="/img/favicon.png" type="image/png">
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="ShareNest - Community for Sharing Unwanted Goods in the Lothian area">
+    <meta property="og:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta property="og:image" content="/icons/icon-512x512.png">
+    <meta property="og:url" content="https://www.sharenest.org">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ShareNest - Community for Sharing Unwanted Goods in the Lothian area">
+    <meta name="twitter:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta name="twitter:image" content="/icons/icon-512x512.png">
 
 <!-- Link to External PWA Script -->
 <script src="/js/pwa.js" defer></script>
-    <title>Edit Listing</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="css/styles.css" rel="stylesheet">
@@ -221,6 +272,7 @@ while ($row = $result_images->fetch_assoc()) {
     <?php endif; ?>
 
     <form action="edit_listing.php" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
         <input type="hidden" name="listing_id" value="<?php echo htmlspecialchars($listing['id']); ?>">
         
         <div class="mb-3">
@@ -287,6 +339,7 @@ while ($row = $result_images->fetch_assoc()) {
                 </div>
                 <div class="modal-body">
                     Are you sure you want to delete this listing?
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <input type="hidden" name="listing_id" id="deleteListingId">
                     <input type="hidden" name="delete_listing" value="true">
                 </div>
@@ -317,9 +370,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-    <button id="install-button" style="display: none;">Install Sharenest</button>
-    
-    <!-- Footer STARTS here -->
+<button id="install-button" style="display: none;">Install Sharenest</button>
+
+<!-- Footer STARTS here -->
 <?php include 'footer.php'; ?>
 <!-- Footer ENDS here -->
 

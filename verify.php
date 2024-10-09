@@ -1,5 +1,5 @@
 <?php
-session_start();
+include 'session_timeout.php';
 include 'connection.php';
 
 // Path to the configuration file
@@ -18,21 +18,21 @@ if ($config === false) {
 }
 
 // Extract database configuration
-$dbServer = htmlspecialchars($config['database']['server']); // Sanitize server name
-$dbUsername = htmlspecialchars($config['database']['username']); // Sanitize username
-$dbPassword = htmlspecialchars($config['database']['password']); // Sanitize password
-$dbName = htmlspecialchars($config['database']['name']); // Sanitize database name
+$dbServer = htmlspecialchars($config['database']['server'], ENT_QUOTES, 'UTF-8'); // Sanitize server name
+$dbUsername = htmlspecialchars($config['database']['username'], ENT_QUOTES, 'UTF-8'); // Sanitize username
+$dbPassword = htmlspecialchars($config['database']['password'], ENT_QUOTES, 'UTF-8'); // Sanitize password
+$dbName = htmlspecialchars($config['database']['name'], ENT_QUOTES, 'UTF-8'); // Sanitize database name
 
 // Create connection
 $conn = new mysqli($dbServer, $dbUsername, $dbPassword, $dbName);
 
 // Check connection
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    die("Connection failed: " . htmlspecialchars($conn->connect_error, ENT_QUOTES, 'UTF-8'));
 }
 
 if (isset($_GET['token'])) {
-    $token = htmlspecialchars($_GET['token']); // Sanitize token
+    $token = htmlspecialchars($_GET['token'], ENT_QUOTES, 'UTF-8'); // Sanitize token
 
     // Validate the token
     $sql = "SELECT * FROM users WHERE token = ? AND status = 'inactive'";

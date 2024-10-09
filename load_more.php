@@ -1,6 +1,11 @@
 <?php
-// load_more.php
 include 'session_timeout.php';
+
+// Check if the user has access REMOVE THIS AFTER GO LIVE
+if (!isset($_SESSION['access_granted'])) {
+    header('Location: comingsoon.php');
+    exit();
+}
 
 // Redirect non-logged-in users to the sign-in page
 if (!isset($_SESSION['loggedin'])) {
@@ -91,5 +96,4 @@ while ($row = $result->fetch_assoc()) {
 }
 
 echo json_encode($listings);
-
 ?>

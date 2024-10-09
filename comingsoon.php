@@ -1,15 +1,14 @@
 <?php
 include 'session_timeout.php';
-
-// Redirect logged-in users to the homepage
-if (isset($_SESSION['loggedin'])) {
-    header('Location: index.php');
-    exit;
-}
-
 include 'connection.php';
 
-// Generate CSRF token
+// Check if user is already logged in and redirect to index.php
+if (isset($_SESSION['loggedin'])) {
+    header('Location: index.php');
+    exit();
+}
+
+// Generate CSRF token if it doesn't exist
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
@@ -31,8 +30,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Sanitize user input
-    $usernameOrEmail = htmlspecialchars($_POST['usernameOrEmail'], ENT_QUOTES, 'UTF-8');
-    $password = htmlspecialchars($_POST['password'], ENT_QUOTES, 'UTF-8');
+    $usernameOrEmail = htmlspecialchars($_POST['usernameOrEmail']);
+    $password = htmlspecialchars($_POST['password']);
 
     // Use prepared statements to prevent SQL injection
     $sql = "SELECT * FROM users WHERE email = ? OR username = ?";
@@ -58,8 +57,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['username'] = $row['username'];
             $_SESSION['user_image'] = $row['profile_image']; // Set profile image in session
             $_SESSION['is_admin'] = $row['is_admin']; // Set admin status in session
+            $_SESSION['firstname'] = $row['firstname'];
+            $_SESSION['access_granted'] = true; // Grant access
 
-            header('Location: my_nest.php');
+            header('Location: index.php');
             exit;
         } else {
             // Password is incorrect
@@ -117,8 +118,8 @@ $conn->close();
     <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
 
-     <!-- Favicon for Browsers -->
-     <link rel="icon" href="/img/favicon.png" type="image/png">
+ <!-- Favicon for Browsers -->
+ <link rel="icon" href="/img/favicon.png" type="image/png">
     <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
     
@@ -135,46 +136,135 @@ $conn->close();
     <meta name="twitter:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
     <meta name="twitter:image" content="/icons/icon-512x512.png">
 
-    <!-- Link to External PWA Script -->
-    <script src="/js/pwa.js" defer></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="css/styles.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f8f9fa;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            color: #333;
+        }
+        .coming-soon-container {
+            max-width: 600px;
+            padding: 40px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .coming-soon-logo img {
+            max-width: 200px;
+            margin-bottom: 20px;
+        }
+        .coming-soon h1 {
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            color: #5cb85c;
+        }
+        .countdown {
+            display: flex;
+            justify-content: space-between;
+            max-width: 400px;
+            margin: 0 auto 20px;
+            gap: 15px;
+        }
+        .countdown div {
+            font-size: 1.5em;
+            flex: 1;
+        }
+        .countdown div span {
+            display: block;
+            font-size: 2em;
+            font-weight: bold;
+            color: #5cb85c;
+        }
+        .access-form {
+            margin-top: 20px;
+        }
+        .access-form input[type="text"],
+        .access-form input[type="password"] {
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+        }
+        .access-form input[type="submit"] {
+            background-color: #5cb85c;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .access-form input[type="submit"]:hover {
+            background-color: #4cae4c;
+        }
+        .error-message {
+            color: red;
+        }
+    </style>
 </head>
-<body class="p-3 m-0 border-0 bd-example m-0 border-0">
+<body>
 
-<!-- Navbar STARTS here -->
-<?php include 'navbar.php'; ?>
-<!-- Navbar ENDS here -->
-
-<!-- Login Form STARTS here -->
-<div id="content" class="container mt-5 d-flex align-items-center justify-content-center">
-    <div class="col-md-5 col-sm-8" >
-        <h2>Login</h2>
-        <?php if (isset($error)) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error) . "</div>"; } ?>
-        <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-            <div class="mb-3">
-                <label for="usernameOrEmail" class="form-label">Username or Email:</label>
-                <input type="text" class="form-control" id="usernameOrEmail" name="usernameOrEmail" required>
-            </div>
-            <div class="mb-3">
-                <label for="password" class="form-label">Password:</label>
-                <input type="password" class="form-control" id="password" name="password" required>
-            </div>
-            <button type="submit" class="btn btn-outline-success">Login</button>
-            <p class="mt-3">Don't have an account? <a href="register.php">Register here</a>.</p>
-        </form>
+<div class="coming-soon-container">
+    <div class="coming-soon-logo">
+        <img src="img/sharenest_logo.png" alt="ShareNest Logo">
     </div>
+    <h1>Coming Soon</h1>
+    <p>We are excited to launch ShareNest. Stay tuned for our launch on December 1st!</p>
+    <div class="countdown" id="countdown">
+        <div><span id="days">0</span> Days</div>
+        <div><span id="hours">0</span> Hours</div>
+        <div><span id="minutes">0</span> Minutes</div>
+        <div><span id="seconds">0</span> Seconds</div>
+    </div>
+    <form method="post" class="access-form">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+        <div class="mb-3">
+            <label for="usernameOrEmail" class="form-label">Username or Email:</label>
+            <input type="text" class="form-control" id="usernameOrEmail" name="usernameOrEmail" required>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Password:</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <input type="submit" value="Login">
+        <?php if (isset($error)) : ?>
+            <p class="error-message"><?php echo htmlspecialchars($error); ?></p>
+        <?php endif; ?>
+    </form>
 </div>
-<!-- Login Form ENDS here -->
 
-<!-- Footer STARTS here -->
-<?php include 'footer.php'; ?>
-<!-- Footer ENDS here -->
+<script>
+    // Countdown timer
+    const countdown = () => {
+        const countDate = new Date("December 1, 2024 00:00:00").getTime();
+        const now = new Date().getTime();
+        const gap = countDate - now;
 
-<!-- Bootstrap Bundle with Popper -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <button id="install-button" style="display: none;">Install Sharenest</button>
+        const second = 1000;
+        const minute = second * 60;
+        const hour = minute * 60;
+        const day = hour * 24;
+
+        const textDay = Math.floor(gap / day);
+        const textHour = Math.floor((gap % day) / hour);
+        const textMinute = Math.floor((gap % hour) / minute);
+        const textSecond = Math.floor((gap % minute) / second);
+
+        document.getElementById('days').innerText = textDay;
+        document.getElementById('hours').innerText = textHour;
+        document.getElementById('minutes').innerText = textMinute;
+        document.getElementById('seconds').innerText = textSecond;
+    };
+
+    setInterval(countdown, 1000);
+</script>
 </body>
 </html>

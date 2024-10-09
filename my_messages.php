@@ -1,7 +1,12 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    include 'session_timeout.php';
+include 'session_timeout.php';
+
+// Check if the user has access REMOVE THIS AFTER GO LIVE
+if (!isset($_SESSION['access_granted'])) {
+    header('Location: comingsoon.php');
+    exit();
 }
+
 
 // Redirect non-logged-in users to the sign-in page
 if (!isset($_SESSION['loggedin'])) {
@@ -65,19 +70,6 @@ while ($row = $result->fetch_assoc()) {
     $conversations[] = $row;
 }
 
-$stmt = $conn->prepare($sql);
-if (!$stmt) {
-    die("Error preparing statement: " . $conn->error);
-}
-$stmt->bind_param("iii", $user_id, $user_id, $user_id);
-$stmt->execute();
-$result = $stmt->get_result();
-
-$conversations = [];
-while ($row = $result->fetch_assoc()) {
-    $conversations[] = $row;
-}
-
 // Fetch unread messages count for the navbar
 $sql_unread_count = "SELECT COUNT(*) AS unread_count FROM messages WHERE recipient_id = ? AND `read` = FALSE";
 $stmt_unread_count = $conn->prepare($sql_unread_count);
@@ -98,33 +90,73 @@ if ($result_address->num_rows > 0) {
     $address = $result_address->fetch_assoc();
 }
 
+// Generate CSRF token if it doesn't exist
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 ?>
 
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-       <!-- Web App Manifest -->
-       <link rel="manifest" href="/manifest.json">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- SEO Meta Tags -->
+    <title>ShareNest - Community for Sharing Unwanted Goods in the Lothian area</title>
 
-<!-- Theme Color -->
-<meta name="theme-color" content="#4CAF50">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-16S7LDQL7H"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
 
-<!-- iOS-specific meta tags -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Sharenest">
-<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    gtag('config', 'G-16S7LDQL7H');
+    </script>
 
-<!-- Icons for various devices -->
-<link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png">
-<link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
-<link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+
+    <meta name="description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta name="keywords" content="share, unwanted goods, free items, community sharing, Lothian, give away, second hand, recycle, reuse">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="ShareNest">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#4CAF50">
+
+    <!-- iOS-specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ShareNest">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
+    <!-- Icons for various devices -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+
+     <!-- Favicon for Browsers -->
+     <link rel="icon" href="/img/favicon.png" type="image/png">
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="ShareNest - Community for Sharing Unwanted Goods in the Lothian area">
+    <meta property="og:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta property="og:image" content="/icons/icon-512x512.png">
+    <meta property="og:url" content="https://www.sharenest.org">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ShareNest - Community for Sharing Unwanted Goods in the Lothian area">
+    <meta name="twitter:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta name="twitter:image" content="/icons/icon-512x512.png">
 
 <!-- Link to External PWA Script -->
 <script src="/js/pwa.js" defer></script>
-    <title>My Messages</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
@@ -192,19 +224,20 @@ if ($result_address->num_rows > 0) {
                 </div>
             </div>
             <div class="modal-footer">
-    <form id="sendMessageForm" class="form-container">
-        <div class="suggestion-buttons">
-            <button type="button" class="btn btn-sm btn-outline-secondary suggestion-button" id="shareAddressButton" style="display: none;">Share my address</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary suggestion-button" id="markPendingButton" style="display: none;">Mark as Pending Collection</button>
-        </div>
-        <textarea name="message" class="form-control mt-3" id="messageText" placeholder="Type your message here..." required></textarea>
-        <input type="hidden" id="conversationId" name="conversation_id">
-        <input type="hidden" id="listingId" name="listing_id">
-    </form>
-    <button type="button" class="btn btn-outline-success" id="sendMessageButton">Send</button>
-    <button type="button" class="btn btn-outline-success d-none" id="sendingAddressButton">Sending my address...</button>
-    <div id="sendingIndicator" class="text-success" style="display: none; margin-left: 10px;">Sending...</div>
-</div>
+                <form id="sendMessageForm" class="form-container">
+                    <div class="suggestion-buttons">
+                        <button type="button" class="btn btn-sm btn-outline-secondary suggestion-button" id="shareAddressButton" style="display: none;">Share my address</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary suggestion-button" id="markPendingButton" style="display: none;">Mark as Pending Collection</button>
+                    </div>
+                    <textarea name="message" class="form-control mt-3" id="messageText" placeholder="Type your message here..." required></textarea>
+                    <input type="hidden" id="conversationId" name="conversation_id">
+                    <input type="hidden" id="listingId" name="listing_id">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                </form>
+                <button type="button" class="btn btn-outline-success" id="sendMessageButton">Send</button>
+                <button type="button" class="btn btn-outline-success d-none" id="sendingAddressButton">Sending my address...</button>
+                <div id="sendingIndicator" class="text-success" style="display: none; margin-left: 10px;">Sending...</div>
+            </div>
         </div>
     </div>
 </div>
@@ -214,6 +247,7 @@ if ($result_address->num_rows > 0) {
 <script>
     document.addEventListener('DOMContentLoaded', function() {
     const markPendingButton = document.getElementById('markPendingButton');
+    const conversationModal = document.getElementById('conversationModal');
 
     conversationModal.addEventListener('show.bs.modal', function(event) {
         const button = event.relatedTarget;
@@ -345,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ listing_id: listingId })
+            body: JSON.stringify({ listing_id: listingId, csrf_token: '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>' })
         })
         .then(response => response.json())
         .then(data => {
@@ -370,7 +404,7 @@ document.addEventListener('DOMContentLoaded', function() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ listing_id: listingId })
+            body: JSON.stringify({ listing_id: listingId, csrf_token: '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>' })
         })
         .then(response => response.json())
         .then(data => {
@@ -428,7 +462,8 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({
                 conversation_id: conversationId,
-                message: messageText
+                message: messageText,
+                csrf_token: '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>'
             })
         })
         .then(response => response.json())
@@ -483,7 +518,8 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             body: JSON.stringify({
                 conversation_id: conversationId,
-                message: messageText
+                message: messageText,
+                csrf_token: '<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>'
             })
         })
         .then(response => response.json())
@@ -517,10 +553,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
-
-
-
-
 
 </script>
 

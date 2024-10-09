@@ -17,7 +17,7 @@ if (ini_get("session.use_cookies")) {
 // Destroy the session
 session_destroy();
 
-// Redirect to the login page after logout
-header("Location: index.php"); // Ensure index.php exists in the correct location
+// Redirect to the index page after logout
+header("Location: index.php");
 exit;
 ?>

@@ -2,10 +2,11 @@
 include 'session_timeout.php';
 include 'connection.php';
 
-// Enable error reporting
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Check if the user has access REMOVE THIS AFTER GO LIVE
+if (!isset($_SESSION['access_granted'])) {
+    header('Location: comingsoon.php');
+    exit();
+}
 
 // Path to the configuration file
 $configFilePath = dirname(__DIR__) . '/config/config.ini';
@@ -30,10 +31,21 @@ require 'phpmailer/src/SMTP.php';
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+// Generate CSRF token if not already set
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Get the JSON data from the request
 $data = json_decode(file_get_contents('php://input'), true);
-if (!isset($data['conversation_id'], $data['message'])) {
+if (!isset($data['conversation_id'], $data['message'], $data['csrf_token'])) {
     echo json_encode(['success' => false, 'error' => 'Invalid input']);
+    exit;
+}
+
+// Validate CSRF token
+if (!hash_equals($_SESSION['csrf_token'], $data['csrf_token'])) {
+    echo json_encode(['success' => false, 'error' => 'Invalid CSRF token']);
     exit;
 }
 

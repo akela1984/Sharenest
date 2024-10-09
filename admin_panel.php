@@ -1,5 +1,15 @@
 <?php
-session_start(); // Ensure session is started
+include 'session_timeout.php'; // Ensure session_start() is called here
+
+
+// Check if the user has access REMOVE THIS AFTER GO LIVE
+if (!isset($_SESSION['access_granted'])) {
+    header('Location: comingsoon.php');
+    exit();
+  }
+  
+
+error_reporting(E_ALL);
 
 // Redirect non-admin users to the homepage
 if (!isset($_SESSION['loggedin']) || !$_SESSION['loggedin'] || $_SESSION['is_admin'] !== 'true') {
@@ -8,6 +18,11 @@ if (!isset($_SESSION['loggedin']) || !$_SESSION['loggedin'] || $_SESSION['is_adm
 }
 
 include 'connection.php'; // Include the connection to your database
+
+// Generate CSRF token if it doesn't exist
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 // Load PHPMailer at the top of the file
 require 'phpmailer/src/Exception.php';
@@ -42,6 +57,24 @@ function fetch_under_review_count($conn) {
     $sql = "SELECT COUNT(*) as count FROM listings WHERE state = 'under_review'";
     return $conn->query($sql)->fetch_assoc()['count'];
 }
+
+// Fetch statistics
+$total_users = fetch_total_count($conn, 'users');
+$total_listings = fetch_total_count($conn, 'listings');
+$total_conversations = fetch_total_count($conn, 'conversations');
+$total_messages = fetch_total_count($conn, 'messages');
+
+// Fetch listings by state
+$sql = "SELECT state, COUNT(*) as count FROM listings GROUP BY state";
+$listings_by_state = $conn->query($sql)->fetch_all(MYSQLI_ASSOC);
+
+// Fetch listings by type
+$sql = "SELECT listing_type, COUNT(*) as count FROM listings GROUP BY listing_type";
+$listings_by_type = $conn->query($sql)->fetch_all(MYSQLI_ASSOC);
+
+// Fetch messages by read status
+$sql = "SELECT `read`, COUNT(*) as count FROM messages GROUP BY `read`";
+$messages_by_status = $conn->query($sql)->fetch_all(MYSQLI_ASSOC);
 
 // Function to delete images from the filesystem
 function delete_listing_images($conn, $user_id) {
@@ -143,6 +176,11 @@ $under_review_count = fetch_under_review_count($conn);
 
 // Function to update user data
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_user'])) {
+    // CSRF token validation
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        die("Invalid CSRF token");
+    }
+
     $user_id = $_POST['user_id'];
     $username = $_POST['username'];
     $email = $_POST['email'];
@@ -162,6 +200,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_user'])) {
 
 // Function to update listing data
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_listing'])) {
+    // CSRF token validation
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        die("Invalid CSRF token");
+    }
+
     $listing_id = $_POST['listing_id'];
     $title = $_POST['title'];
     $listing_description = $_POST['listing_description'];
@@ -183,6 +226,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_listing'])) {
 
 // Function to delete user data
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
+    // CSRF token validation
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        die("Invalid CSRF token");
+    }
+
     $user_id = $_POST['user_id'];
     $reason = $_POST['reason'];
 
@@ -211,42 +259,91 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
     exit;
 }
 
-// Function to delete listing data
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
-    $listing_id = $_POST['listing_id'];
-    $reason = $_POST['reason'];
+// Function to create a new user
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['new_username'])) {
+    // CSRF token validation
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        die("Invalid CSRF token");
+    }
 
-    // Get listing details and user email before deletion
-    $sql = "SELECT listings.title, users.email, users.username 
-            FROM listings 
-            JOIN users ON listings.user_id = users.id 
-            WHERE listings.id=?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $listing_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $listing = $result->fetch_assoc();
+    $new_username = htmlspecialchars(trim($_POST['new_username']), ENT_QUOTES, 'UTF-8');
+    $new_email = htmlspecialchars(trim($_POST['new_email']), ENT_QUOTES, 'UTF-8');
+    $new_password = $_POST['new_password'];
+    $confirmPassword = $_POST['confirmPassword'];
+    $new_firstname = htmlspecialchars(trim($_POST['new_firstname']), ENT_QUOTES, 'UTF-8');
+    $new_lastname = htmlspecialchars(trim($_POST['new_lastname']), ENT_QUOTES, 'UTF-8');
+    $new_status = $_POST['new_status'];
+    $new_is_admin = $_POST['new_is_admin'];
+    $token = bin2hex(random_bytes(16));
 
-    // Delete listing
-    $sql = "DELETE FROM listings WHERE id=?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("i", $listing_id);
-    $stmt->execute();
+    // Validate input
+    $error = '';
+    if (empty($new_username) || empty($new_email) || empty($new_password) || empty($confirmPassword)) {
+        $error = "All fields are required!";
+    } elseif (!filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
+        $error = "Invalid email format!";
+    } elseif ($new_password !== $confirmPassword) {
+        $error = "Passwords do not match!";
+    } elseif (!preg_match('/^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/', $new_password)) {
+        $error = "Password must be at least 8 characters long, include at least one letter, one number, and one special character from @$!%*#?&.";
+    } else {
+        // Check if username or email already exists
+        $sql = "SELECT * FROM users WHERE email = ? OR username = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ss", $new_email, $new_username);
+        $stmt->execute();
+        $result = $stmt->get_result();
 
-    // Send email notification
-    $template = $reason === 'User Requested' ? 'listing_deleted_user_requested' : 'listing_deleted_admin_decision';
-    send_email($listing['email'], 'Listing Deletion Notification', $template, ['username' => $listing['username'], 'title' => $listing['title']]);
+        if ($result->num_rows > 0) {
+            $error = "Username or email already taken!";
+        } else {
+            $hashedPassword = password_hash($new_password, PASSWORD_DEFAULT);
 
-    header('Location: admin_panel.php?tab=listings&message=Listing deleted successfully');
-    exit;
+            // Insert new user into the database with a token and status as inactive
+            $sql = "INSERT INTO users (username, email, password, firstname, lastname, status, is_admin, token) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ssssssss", $new_username, $new_email, $hashedPassword, $new_firstname, $new_lastname, $new_status, $new_is_admin, $token);
+
+            if ($stmt->execute()) {
+                // If the new user is inactive, send a verification email
+                if ($new_status === 'inactive') {
+                    send_email($new_email, 'Email Verification - Sharenest', 'register_email_template', [
+                        'username' => $new_username,
+                        'verification_link' => "http://sharenest.org/verify.php?token=" . urlencode($token)
+                    ]);
+                }
+                header('Location: admin_panel.php?tab=create_user&message=User created successfully');
+                exit;
+            } else {
+                $error = 'Failed to create user: ' . $stmt->error;
+            }
+        }
+    }
 }
 ?>
-
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- SEO Meta Tags -->
+    <title>ShareNest - Community for Sharing Unwanted Goods in the Lothian area</title>
+
+        <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-16S7LDQL7H"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-16S7LDQL7H');
+    </script>
+
+    <meta name="description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta name="keywords" content="share, unwanted goods, free items, community sharing, Lothian, give away, second hand, recycle, reuse">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="ShareNest">
+    
     <!-- Web App Manifest -->
     <link rel="manifest" href="/manifest.json">
 
@@ -256,7 +353,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
     <!-- iOS-specific meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Sharenest">
+    <meta name="apple-mobile-web-app-title" content="ShareNest">
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 
     <!-- Icons for various devices -->
@@ -264,9 +361,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
     <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
 
+     <!-- Favicon for Browsers -->
+ <link rel="icon" href="/img/favicon.png" type="image/png">
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
+
+    <!-- Icons for various devices -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/img/favicon.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/img/favicon.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/img/favicon.png">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="ShareNest - Community for Sharing Unwanted Goods in the Lothian area">
+    <meta property="og:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta property="og:image" content="/icons/icon-512x512.png">
+    <meta property="og:url" content="https://www.sharenest.org">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ShareNest - Community for Sharing Unwanted Goods in the Lothian area">
+    <meta name="twitter:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta name="twitter:image" content="/icons/icon-512x512.png">
+
     <!-- Link to External PWA Script -->
     <script src="/js/pwa.js" defer></script>
-    <title>Admin Panel</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="css/styles.css" rel="stylesheet">
@@ -281,6 +400,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
         .under-review {
             background-color: lightcoral !important;
         }
+        .stats-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .stats-card {
+            flex: 1 1 calc(25% - 20px);
+            padding: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stats-card h3 {
+            margin-bottom: 20px;
+            color: #5cb85c;
+        }
+        .stats-card p {
+            font-size: 1.5rem;
+        }
     </style>
 </head>
 <body class="p-3 m-0 border-0 bd-example m-0 border-0">
@@ -289,7 +429,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
 <?php include 'navbar.php'; ?>
 <!-- Navbar ENDS here -->
 
-<div id="content" class="container mt-5 d-flex">
+<div id="content" class="container mt-5">
     <h2>Admin Panel</h2>
     
     <?php if ($under_review_count > 0): ?>
@@ -311,6 +451,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link <?php echo (isset($_GET['tab']) && $_GET['tab'] == 'listings') ? 'active' : ''; ?>" id="listings-tab" data-bs-toggle="tab" data-bs-target="#listings" type="button" role="tab" aria-controls="listings" aria-selected="<?php echo (isset($_GET['tab']) && $_GET['tab'] == 'listings') ? 'true' : 'false'; ?>">Listings</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link <?php echo (isset($_GET['tab']) && $_GET['tab'] == 'create_user') ? 'active' : ''; ?>" id="create_user-tab" data-bs-toggle="tab" data-bs-target="#create_user" type="button" role="tab" aria-controls="create_user" aria-selected="<?php echo (isset($_GET['tab']) && $_GET['tab'] == 'create_user') ? 'true' : 'false'; ?>">Create User</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link <?php echo (isset($_GET['tab']) && $_GET['tab'] == 'stats') ? 'active' : ''; ?>" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button" role="tab" aria-controls="stats" aria-selected="<?php echo (isset($_GET['tab']) && $_GET['tab'] == 'stats') ? 'true' : 'false'; ?>">Stats</button>
         </li>
     </ul>
 
@@ -359,6 +505,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
                                 </td>
                                 <td>
                                     <input type="hidden" name="user_id" value="<?php echo htmlspecialchars($user['id']); ?>">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                     <input type="hidden" name="delete_user" value="">
                                     <div class="d-flex">
                                         <button type="button" class="btn btn-warning edit-btn me-2">Edit</button>
@@ -415,7 +562,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($listings as $listing) { ?>
+                        <?php foreach ($listings as $listing) { 
+                            // Convert state and listing_type to human-readable format
+                            $state_readable = ucwords(str_replace('_', ' ', $listing['state']));
+                            $type_readable = ucwords(str_replace('_', ' ', $listing['listing_type']));
+                        ?>
                         <tr class="<?php echo $listing['state'] == 'under_review' ? 'under-review' : ''; ?>">
                             <form method="post" action="admin_panel.php?tab=listings" class="listing-form">
                                 <td><?php echo htmlspecialchars($listing['id']); ?></td>
@@ -440,6 +591,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
                                 </td>
                                 <td>
                                     <input type="hidden" name="listing_id" value="<?php echo htmlspecialchars($listing['id']); ?>">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                     <input type="hidden" name="delete_listing" value="">
                                     <div class="d-flex">
                                         <button type="button" class="btn btn-warning edit-btn me-2">Edit</button>
@@ -477,6 +629,105 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
                 </ul>
             </nav>
         </div>
+
+        <!-- Create User Tab -->
+        <div class="tab-pane fade <?php echo (isset($_GET['tab']) && $_GET['tab'] == 'create_user') ? 'show active' : ''; ?>" id="create_user" role="tabpanel" aria-labelledby="create_user-tab">
+            <div class="container mt-5">
+                <h3>Create New User</h3>
+                <?php if (isset($error) && !empty($error)): ?>
+                    <div class="alert alert-danger" role="alert">
+                        <?php echo htmlspecialchars($error); ?>
+                    </div>
+                <?php endif; ?>
+                <form id="createUserForm" method="post" action="admin_panel.php?tab=create_user">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="mb-3">
+                        <label for="new_username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="new_username" name="new_username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="new_email" name="new_email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="new_password" name="new_password" required>
+                        <small id="passwordHelp" class="form-text text-muted">
+                            Password must be at least 8 characters long, include at least one letter, one number, and one special character. 
+                            Allowed special characters: @$!%*#?&.
+                        </small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_firstname" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="new_firstname" name="new_firstname" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_lastname" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="new_lastname" name="new_lastname" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_status" class="form-label">Status</label>
+                        <select id="new_status" name="new_status" class="form-select" required>
+                            <option value="inactive">Inactive</option>
+                            <option value="active">Active</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="new_is_admin" class="form-label">Admin</label>
+                        <select id="new_is_admin" name="new_is_admin" class="form-select" required>
+                            <option value="false">False</option>
+                            <option value="true">True</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-outline-success create-user-btn">Create User</button>
+                    <span id="creatingUserText" class="text-success d-none">Creating user...</span>
+                </form>
+            </div>
+        </div>
+
+        <!-- Stats Tab -->
+        <div class="tab-pane fade <?php echo (isset($_GET['tab']) && $_GET['tab'] == 'stats') ? 'show active' : ''; ?>" id="stats" role="tabpanel" aria-labelledby="stats-tab">
+            <div class="stats-container">
+                <div class="stats-card">
+                    <h3>Total Users</h3>
+                    <p><?php echo htmlspecialchars($total_users); ?></p>
+                </div>
+                <div class="stats-card">
+                    <h3>Total Listings</h3>
+                    <p><?php echo htmlspecialchars($total_listings); ?></p>
+                </div>
+                <div class="stats-card">
+                    <h3>Total Conversations</h3>
+                    <p><?php echo htmlspecialchars($total_conversations); ?></p>
+                </div>
+                <div class="stats-card">
+                    <h3>Total Messages</h3>
+                    <p><?php echo htmlspecialchars($total_messages); ?></p>
+                </div>
+                <div class="stats-card">
+                    <h3>Listings by State</h3>
+                    <?php foreach ($listings_by_state as $state) { ?>
+                        <p><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $state['state']))) . ': ' . htmlspecialchars($state['count']); ?></p>
+                    <?php } ?>
+                </div>
+                <div class="stats-card">
+                    <h3>Listings by Type</h3>
+                    <?php foreach ($listings_by_type as $type) { ?>
+                        <p><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $type['listing_type']))) . ': ' . htmlspecialchars($type['count']); ?></p>
+                    <?php } ?>
+                </div>
+                <div class="stats-card">
+                    <h3>Messages by Status</h3>
+                    <?php foreach ($messages_by_status as $status) { ?>
+                        <p><?php echo $status['read'] ? 'Read: ' : 'Unread: '; ?><?php echo htmlspecialchars($status['count']); ?></p>
+                    <?php } ?>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -492,6 +743,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
                 <div class="modal-body">
                     Are you sure you want to delete this user?
                     <input type="hidden" name="user_id" id="deleteUserId">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <input type="hidden" name="delete_user" value="true">
                     <div class="mb-3">
                         <label for="reason" class="form-label">Reason for Deletion:</label>
@@ -524,6 +776,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
                 <div class="modal-body">
                     Are you sure you want to delete this listing?
                     <input type="hidden" name="listing_id" id="deleteListingId">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <input type="hidden" name="delete_listing" value="true">
                     <div class="mb-3">
                         <label for="reason" class="form-label">Reason for Deletion:</label>
@@ -632,6 +885,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 processingText.classList.remove('d-none');
             }
         });
+    });
+
+    // Handle form submission for creating users
+    const createUserForm = document.getElementById('createUserForm');
+    createUserForm.addEventListener('submit', function(event) {
+        const new_password = document.getElementById('new_password').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        const errorMessage = document.getElementById('errorMessage');
+        const regex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+
+        errorMessage.style.display = 'none';
+
+        if (!regex.test(new_password)) {
+            errorMessage.textContent = 'Password must be at least 8 characters long, include at least one letter, one number, and one special character from @$!%*#?&.';
+            errorMessage.style.display = 'block';
+            event.preventDefault();
+        } else if (new_password !== confirmPassword) {
+            errorMessage.textContent = 'Passwords do not match!';
+            errorMessage.style.display = 'block';
+            event.preventDefault();
+        } else {
+            const createUserButton = createUserForm.querySelector('.create-user-btn');
+            const creatingUserText = document.getElementById('creatingUserText');
+
+            createUserButton.disabled = true;
+            createUserButton.style.display = 'none';
+            creatingUserText.style.display = 'inline';
+        }
     });
 });
 </script>

@@ -2,6 +2,13 @@
 include 'session_timeout.php';
 include 'connection.php';
 
+// Check if the user has access
+if (!isset($_SESSION['access_granted'])) {
+    header('Location: comingsoon.php');
+    exit();
+}
+
+// Check if the conversation ID is set
 if (!isset($_GET['conversation_id'])) {
     echo json_encode([]);
     exit;

@@ -1,6 +1,11 @@
 <?php
-session_start();
 include 'session_timeout.php';
+
+// Check if the user has access REMOVE THIS AFTER GO LIVE
+if (!isset($_SESSION['access_granted'])) {
+    header('Location: comingsoon.php');
+    exit();
+}
 
 // Redirect non-logged-in users to the sign-in page
 if (!isset($_SESSION['loggedin'])) {
@@ -9,6 +14,11 @@ if (!isset($_SESSION['loggedin'])) {
 }
 
 include 'connection.php';
+
+// Generate CSRF token if it doesn't exist
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 
 // Path to the configuration file
 $configFilePath = dirname(__DIR__) . '/config/config.ini';
@@ -37,6 +47,11 @@ $message_sent = false;
 $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($_POST['listing_id'])) {
+    // Check CSRF token
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        die("Invalid CSRF token");
+    }
+
     $sender_id = $_SESSION['user_id'];
     $listing_id = intval($_POST['listing_id']);
     $message = htmlspecialchars(trim($_POST['message']), ENT_QUOTES, 'UTF-8');
@@ -213,31 +228,61 @@ $locationIdsStr = implode(',', $locationIds);
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ShareNest: Share unwanted items. Reduce waste. Live green.</title>
-  <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#4CAF50">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Sharenest">
-  <link rel="apple-touch-icon" href="/img/favicon.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/img/favicon.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="/img/favicon.png">
-  <link rel="apple-touch-icon" sizes="512x512" href="/img/favicon.png">
-  <link rel="icon" href="/img/favicon.png" type="image/png">
-  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
-  <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
-  <script src="/js/pwa.js" defer></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- SEO Meta Tags -->
+    <title>ShareNest - Community for Sharing Unwanted Goods in the Lothian area</title>
 
-  <meta name="description" content="ShareNest is an online community to share unwanted items and reduce waste. Find a new home for your pre-loved goods and promote sustainable living in Scotland.">
-  <meta name="keywords" content="share unwanted items, reduce waste, reuse, recycle, green living, sustainability, online community, Scotland, Edinburgh, Lothians">
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-16S7LDQL7H"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
 
-  <meta property="og:url" content="https://www.sharenest.com/">  
-  <meta property="og:title" content="ShareNest: Share unwanted items. Reduce waste. Live green.">
-  <meta property="og:description" content="ShareNest is an online community to share unwanted items and reduce waste. Find a new home for your pre-loved goods and promote sustainable living in Scotland.">
-  <meta property="og:image" content="https://www.sharenest.com/img/sharenest_logo.png">  
-  <meta property="og:type" content="website">
+    gtag('config', 'G-16S7LDQL7H');
+    </script>
+
+
+    <meta name="description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta name="keywords" content="share, unwanted goods, free items, community sharing, Lothian, give away, second hand, recycle, reuse">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="ShareNest">
+    
+    <!-- Web App Manifest -->
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#4CAF50">
+
+    <!-- iOS-specific meta tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="ShareNest">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
+    <!-- Icons for various devices -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+
+     <!-- Favicon for Browsers -->
+     <link rel="icon" href="/img/favicon.png" type="image/png">
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="ShareNest - Community for Sharing Unwanted Goods in the Lothian area">
+    <meta property="og:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta property="og:image" content="/icons/icon-512x512.png">
+    <meta property="og:url" content="https://www.sharenest.org">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ShareNest - Community for Sharing Unwanted Goods in the Lothian area">
+    <meta name="twitter:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta name="twitter:image" content="/icons/icon-512x512.png">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -245,32 +290,6 @@ $locationIdsStr = implode(',', $locationIds);
   <link href="css/styles.css" rel="stylesheet">
   <!-- Include Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <style>
-    .badge-under-review {
-        display: inline-flex;
-        align-items: center;
-        margin-left: 5px;
-    }
-    
-    .badge-under-review-circle {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        background-color: orange;
-        border-radius: 50%;
-        color: black;
-        text-align: center;
-        line-height: 20px;
-        font-weight: bold;
-    }
-    
-    .badge-under-review-text {
-        margin-left: 5px;
-        font-size: 14px;
-        font-weight: bold;
-        color: black;
-    }
-  </style>
 </head>
 
 <body class="p-3 m-0 border-0 bd-example m-0 border-0">
@@ -292,6 +311,29 @@ $locationIdsStr = implode(',', $locationIds);
         </div>
     <?php else: ?>
         <div class="filter-buttons">
+            <div class="btn-group">
+                <button class="btn btn-outline-success dropdown-toggle" type="button" id="locationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    All Locations
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="locationDropdown">
+                    <li><a class="dropdown-item location-option" href="#" onclick="filterByLocation('all', 'All locations')" id="location-all">All locations <span class="tick">&#10003;</span></a></li>
+                    <?php
+                    foreach ($locationIds as $locationId) {
+                        // Fetch location details
+                        $sql = "SELECT location_name FROM locations WHERE location_id = ?";
+                        $stmt = $conn->prepare($sql);
+                        $stmt->bind_param("i", $locationId);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        if ($result->num_rows > 0) {
+                            $location = $result->fetch_assoc();
+                            echo '<li><a class="dropdown-item location-option" href="#" onclick="filterByLocation(' . $locationId . ', \'' . htmlspecialchars($location['location_name'], ENT_QUOTES, 'UTF-8') . '\')" id="location-' . $locationId . '">' . htmlspecialchars($location['location_name'], ENT_QUOTES, 'UTF-8') . ' <span class="tick" style="display: none;">&#10003;</span></a></li>';
+                        }
+                    }
+                    ?>
+                    <li><a class="dropdown-item" href="join_location.php">... Join location</a></li>
+                </ul>
+            </div>
             <div>
                 <button id="filter-all" class="btn btn-outline-success active">All</button>
                 <button id="filter-sharing" class="btn btn-outline-success">For Sharing</button>
@@ -324,7 +366,8 @@ $locationIdsStr = implode(',', $locationIds);
 <script>
     let offset = 0;
     const limit = 20;
-    const locationIdsStr = "<?php echo htmlspecialchars($locationIdsStr, ENT_QUOTES, 'UTF-8'); ?>";
+    const allLocationIdsStr = "<?php echo htmlspecialchars(implode(',', $locationIds), ENT_QUOTES, 'UTF-8'); ?>";
+    let currentLocationIdsStr = allLocationIdsStr;
     let currentFilter = 'all';
     let searchTerm = '';
     const placeholderImage = 'img/listing_placeholder.jpeg';
@@ -353,7 +396,7 @@ $locationIdsStr = implode(',', $locationIds);
     });
 
     function fetchSuggestions(query) {
-        fetch(`search_suggestions.php?query=${encodeURIComponent(query)}&locationIds=${locationIdsStr}`)
+        fetch(`search_suggestions.php?query=${encodeURIComponent(query)}&locationIds=${currentLocationIdsStr}`)
             .then(response => response.json())
             .then(data => {
                 const suggestionsContainer = document.getElementById('search-suggestions');
@@ -420,7 +463,7 @@ $locationIdsStr = implode(',', $locationIds);
     }
 
     function loadListings() {
-        fetch(`load_more.php?offset=${offset}&limit=${limit}&locationIds=${locationIdsStr}&filter=${currentFilter}&search=${encodeURIComponent(searchTerm)}`)
+        fetch(`load_more.php?offset=${offset}&limit=${limit}&locationIds=${currentLocationIdsStr}&filter=${currentFilter}&search=${encodeURIComponent(searchTerm)}`)
             .then(response => response.json())
             .then(data => {
                 const listingsContainer = document.getElementById('listings-container');
@@ -602,6 +645,7 @@ $locationIdsStr = implode(',', $locationIds);
                                         <form action="my_nest.php" method="POST" onsubmit="return validateMessage(${listing.id});">
                                             <textarea name="message" class="form-control mt-3" placeholder="Type your message here..." minlength="2" required></textarea>
                                             <input type="hidden" name="listing_id" value="${listing.id}">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                             <button type="submit" class="btn btn-primary mt-2 d-none" id="send-message-${listing.id}">Send</button>
                                         </form>
                                         <p class="text-danger mt-2" id="report-listing-${listing.id}" style="cursor: pointer;">Report this listing</p>
@@ -627,7 +671,10 @@ $locationIdsStr = implode(',', $locationIds);
                                     const lat = data[0].lat;
                                     const lon = data[0].lon;
 
-                                    const map = L.map(`map-${listing.id}`).setView([lat, lon], 13);
+                                    const map = L.map(`map-${listing.id}`, {
+                                        scrollWheelZoom: false, // Disable scroll wheel zoom
+                                        dragging: false, // Disable dragging
+                                    }).setView([lat, lon], 13);
 
                                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                                         maxZoom: 19,
@@ -668,6 +715,7 @@ $locationIdsStr = implode(',', $locationIds);
     document.getElementById('filter-all').addEventListener('click', () => {
         offset = 0;
         currentFilter = 'all';
+        currentLocationIdsStr = allLocationIdsStr;
         document.querySelectorAll('.filter-buttons button').forEach(btn => btn.classList.remove('active'));
         document.getElementById('filter-all').classList.add('active');
         loadListings();
@@ -689,7 +737,28 @@ $locationIdsStr = implode(',', $locationIds);
         loadListings();
     });
 
-    loadListings(); // Initial load
+    function filterByLocation(locationId, locationName) {
+        offset = 0;
+        if (locationId === 'all') {
+            currentLocationIdsStr = allLocationIdsStr;
+        } else {
+            currentLocationIdsStr = locationId;
+        }
+        loadListings();
+
+        // Update dropdown button text
+        document.getElementById('locationDropdown').textContent = locationName;
+
+        // Update tick marks
+        document.querySelectorAll('.location-option .tick').forEach(tick => tick.style.display = 'none');
+        document.getElementById(`location-${locationId}`).querySelector('.tick').style.display = 'inline';
+    }
+
+    // Ensure "All locations" is selected by default
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('location-all').querySelector('.tick').style.display = 'inline';
+        loadListings(); // Initial load
+    });
 
     function validateMessage(listingId) {
         const textarea = document.querySelector(`#modal-${listingId} textarea[name="message"]`);
@@ -748,12 +817,14 @@ $locationIdsStr = implode(',', $locationIds);
     }
 
     function reportListing(listingId) {
+        const csrfToken = "<?php echo $_SESSION['csrf_token']; ?>";
+
         fetch('report_listing.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ listing_id: listingId })
+            body: JSON.stringify({ listing_id: listingId, csrf_token: csrfToken })
         })
         .then(response => response.json())
         .then(data => {
@@ -761,7 +832,7 @@ $locationIdsStr = implode(',', $locationIds);
                 alert('Listing has been reported and is now under review.');
                 // Optionally hide the listing or update its status in the UI
             } else {
-                alert('Failed to report the listing. Please try again.');
+                alert('Failed to report the listing: ' + data.message);
             }
         })
         .catch(error => {
@@ -780,6 +851,9 @@ $locationIdsStr = implode(',', $locationIds);
             });
         });
     }
+
+    // Attach the report event listeners after the DOM content is loaded
+    document.addEventListener('DOMContentLoaded', attachReportEventListeners);
 
     function decodeEntities(encodedString) {
         const textArea = document.createElement('textarea');

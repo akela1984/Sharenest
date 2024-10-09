@@ -1,4 +1,8 @@
 <?php
+// Set session save path
+ini_set('session.save_path', '/home/storage/497/4304497/user/htdocs/sessions');
+
+// Start session
 session_start();
 
 // Set the session timeout duration (in seconds)

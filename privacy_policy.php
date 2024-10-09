@@ -1,14 +1,41 @@
 <?php
-session_start();
-
+include 'session_timeout.php';
 include 'connection.php';
+
+// -----------------------------------------------------------------------------------
+// Check if the user has access REMOVE THIS AFTER GO LIVE
+if (!isset($_SESSION['access_granted'])) {
+    header('Location: comingsoon.php');
+    exit();
+}
+// -----------------------------------------------------------------------------------
+
 ?>
 
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- SEO Meta Tags -->
+    <title>ShareNest - Community for Sharing Unwanted Goods in the Lothian area</title>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-16S7LDQL7H"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-16S7LDQL7H');
+    </script>
+
+
+    <meta name="description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta name="keywords" content="share, unwanted goods, free items, community sharing, Lothian, give away, second hand, recycle, reuse">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="ShareNest">
+    
     <!-- Web App Manifest -->
     <link rel="manifest" href="/manifest.json">
 
@@ -18,7 +45,7 @@ include 'connection.php';
     <!-- iOS-specific meta tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Sharenest">
+    <meta name="apple-mobile-web-app-title" content="ShareNest">
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
 
     <!-- Icons for various devices -->
@@ -26,9 +53,26 @@ include 'connection.php';
     <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
 
+     <!-- Favicon for Browsers -->
+     <link rel="icon" href="/img/favicon.png" type="image/png">
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="ShareNest - Community for Sharing Unwanted Goods in the Lothian area">
+    <meta property="og:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta property="og:image" content="/icons/icon-512x512.png">
+    <meta property="og:url" content="https://www.sharenest.org">
+    <meta property="og:type" content="website">
+
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ShareNest - Community for Sharing Unwanted Goods in the Lothian area">
+    <meta name="twitter:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta name="twitter:image" content="/icons/icon-512x512.png">
+
     <!-- Link to External PWA Script -->
     <script src="/js/pwa.js" defer></script>
-    <title>ShareNest - Privacy Policy</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="css/styles.css" rel="stylesheet">
