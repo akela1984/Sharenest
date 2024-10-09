@@ -1,4 +1,5 @@
 <?php
+session_start();
 include 'session_timeout.php';
 
 // Redirect non-logged-in users to the sign-in page
@@ -8,6 +9,29 @@ if (!isset($_SESSION['loggedin'])) {
 }
 
 include 'connection.php';
+
+// Path to the configuration file
+$configFilePath = dirname(__DIR__) . '/config/config.ini';
+
+// Check if the configuration file exists
+if (!file_exists($configFilePath)) {
+    die("Error: Configuration file not found at $configFilePath");
+}
+
+// Load configuration from config.ini located in the config directory
+$config = parse_ini_file($configFilePath, true);
+
+if ($config === false) {
+    die("Error: Failed to parse configuration file at $configFilePath");
+}
+
+// Load PHPMailer
+require 'phpmailer/src/Exception.php';
+require 'phpmailer/src/PHPMailer.php';
+require 'phpmailer/src/SMTP.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 $message_sent = false;
 $error_message = '';
@@ -23,8 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
         exit;
     }
 
-    // Fetch the recipient_id from the listings table
-    $sql = "SELECT user_id FROM listings WHERE id = ?";
+    // Fetch the recipient_id and listing title from the listings table
+    $sql = "SELECT user_id, title FROM listings WHERE id = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $listing_id);
     $stmt->execute();
@@ -38,9 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
 
     $listing = $result->fetch_assoc();
     $recipient_id = $listing['user_id'];
+    $listing_title = $listing['title'];
 
-    // Verify both sender and recipient exist in the users table
-    $sql = "SELECT id FROM users WHERE id IN (?, ?)";
+    // Fetch sender and recipient usernames
+    $sql = "SELECT id, username, email FROM users WHERE id IN (?, ?)";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("ii", $sender_id, $recipient_id);
     $stmt->execute();
@@ -50,6 +75,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
         $_SESSION['message'] = "You can't send a message to yourself!";
         header('Location: my_nest.php');
         exit;
+    }
+
+    while ($user = $result->fetch_assoc()) {
+        if ($user['id'] == $sender_id) {
+            $sender_username = $user['username'];
+            $sender_email = $user['email'];
+        } else {
+            $recipient_username = $user['username'];
+            $recipient_email = $user['email'];
+        }
     }
 
     // Check if a conversation already exists for this listing
@@ -92,7 +127,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("iiis", $conversation_id, $sender_id, $recipient_id, $message);
     if ($stmt->execute()) {
-        $_SESSION['message'] = "Message sent successfully!";
+        // Send email notification to the recipient
+        $mail = new PHPMailer(true);
+
+        try {
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.livemail.co.uk';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $config['smtp']['username'];
+            $mail->Password   = $config['smtp']['password'];
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = 587;
+
+            // Recipients
+            $mail->setFrom('no-reply@sharenest.org', 'Sharenest');
+            $mail->addAddress($recipient_email, $recipient_username);
+
+            // Load HTML template
+            $templatePath = __DIR__ . '/templates/internal_message_template.html';
+            if (!file_exists($templatePath)) {
+                throw new Exception("Email template not found at $templatePath");
+            }
+            $template = file_get_contents($templatePath);
+            $emailBody = str_replace(
+                ['{{recipient_username}}', '{{sender_username}}', '{{listing_title}}', '{{message}}'],
+                [htmlspecialchars($recipient_username), htmlspecialchars($sender_username), htmlspecialchars($listing_title), nl2br(htmlspecialchars($message))],
+                $template
+            );
+
+            // Content
+            $mail->isHTML(true);
+            $mail->Subject = 'New Message Notification';
+            $mail->Body    = $emailBody;
+
+            // Embed the image
+            $logoPath = __DIR__ . '/img/sharenest_logo.png';
+            if (!file_exists($logoPath)) {
+                throw new Exception("Logo not found at $logoPath");
+            }
+            $mail->addEmbeddedImage($logoPath, 'sharenest_logo');
+
+            $mail->send();
+            $_SESSION['message'] = "Message sent successfully and the recipient has been notified!";
+        } catch (Exception $e) {
+            $_SESSION['message'] = "Message sent but email notification failed: {$mail->ErrorInfo}. Exception: {$e->getMessage()}";
+        }
     } else {
         $_SESSION['message'] = "Error sending message.";
     }
@@ -100,6 +180,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
     exit;
 }
 
+// Fetch the logged-in user's information
 $username = $_SESSION['username'];
 $sql = "SELECT * FROM users WHERE username = ?";
 $stmt = $conn->prepare($sql);
@@ -128,6 +209,7 @@ while ($row = $result->fetch_assoc()) {
 
 $locationIdsStr = implode(',', $locationIds);
 ?>
+
 
 <!doctype html>
 <html lang="en">
@@ -635,7 +717,8 @@ $locationIdsStr = implode(',', $locationIds);
                                 </div>
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    <button type="button" class="btn btn-outline-success btn-request" onclick="document.getElementById('send-message-${listing.id}').click();">${buttonText}</button>
+                                    <button type="button" class="btn btn-outline-success btn-request" onclick="handleRequest(this, ${listing.id});">${buttonText}</button>
+                                    <span class="text-success d-none" id="sending-${listing.id}">Sending...</span>
                                 </div>
                             </div>
                         </div>
@@ -715,12 +798,53 @@ $locationIdsStr = implode(',', $locationIds);
     loadListings(); // Initial load
 
     function validateMessage(listingId) {
-        const textarea = document.querySelector(`#modal-${listingId} textarea[name="message"]`);
+        const textarea = document.querySelector(`#modal-${listing.id} textarea[name="message"]`);
         if (textarea.value.trim().length < 2) {
             alert("Message must be at least 2 characters long.");
             return false;
         }
         return true;
+    }
+
+    function handleRequest(button, listingId) {
+        const sendButton = document.getElementById(`send-message-${listingId}`);
+        const sendingText = document.getElementById(`sending-${listingId}`);
+        
+        button.classList.add('d-none');
+        sendingText.classList.remove('d-none');
+
+        sendButton.click();
+
+        // Listen for form submission completion
+        document.querySelector(`#modal-${listingId} form`).addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent form from submitting normally
+
+            // Fetch the form data
+            const formData = new FormData(event.target);
+
+            fetch('my_nest.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(data => {
+                sendingText.classList.add('d-none');
+                button.classList.remove('d-none');
+
+                // Handle the response from the server (e.g., show a success message, close the modal, etc.)
+                console.log('Message sent:', data);
+                alert('Message sent successfully.');
+                const modalElement = document.getElementById(`modal-${listingId}`);
+                const modalInstance = bootstrap.Modal.getInstance(modalElement);
+                modalInstance.hide();
+            })
+            .catch(error => {
+                console.error('Error sending message:', error);
+                alert('Error sending message. Please try again.');
+                sendingText.classList.add('d-none');
+                button.classList.remove('d-none');
+            });
+        });
     }
 </script>
 
