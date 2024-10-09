@@ -132,7 +132,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $mail->addEmbeddedImage($logoPath, 'sharenest_logo');
 
                     $mail->send();
-                    echo 'Email has been sent successfully';
+                    echo "<script>alert('Registration successful! Please check your email, including the junk mail folder, for verification.'); window.location.href='signin.php';</script>";
+                    exit;
 
                 } catch (Exception $e) {
                     echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
@@ -140,7 +141,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
 
                 // Redirect to the signin page
-                header('Location: signin.php');
+                echo "<script>alert('Registration successful! Please check your email for verification.'); window.location.href='signin.php';</script>";
                 exit;
             } else {
                 $error = "Registration failed, please try again!";

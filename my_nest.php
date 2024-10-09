@@ -798,7 +798,7 @@ $locationIdsStr = implode(',', $locationIds);
     loadListings(); // Initial load
 
     function validateMessage(listingId) {
-        const textarea = document.querySelector(`#modal-${listing.id} textarea[name="message"]`);
+        const textarea = document.querySelector(`#modal-${listingId} textarea[name="message"]`);
         if (textarea.value.trim().length < 2) {
             alert("Message must be at least 2 characters long.");
             return false;
@@ -810,6 +810,12 @@ $locationIdsStr = implode(',', $locationIds);
         const sendButton = document.getElementById(`send-message-${listingId}`);
         const sendingText = document.getElementById(`sending-${listingId}`);
         
+        const textarea = document.querySelector(`#modal-${listingId} textarea[name="message"]`);
+        if (textarea.value.trim().length < 2) {
+            alert("Message must be at least 2 characters long.");
+            return;
+        }
+
         button.classList.add('d-none');
         sendingText.classList.remove('d-none');
 
