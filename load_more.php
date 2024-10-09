@@ -28,11 +28,13 @@ $sql = "
         l.id, l.title, l.listing_description, l.time_added, l.listing_type, 
         GROUP_CONCAT(li.image_url) as images,
         u.username,
-        loc.location_name
+        loc.location_name,
+        ua.postcode
     FROM listings l
     JOIN users u ON l.user_id = u.id
     JOIN locations loc ON l.location_id = loc.location_id
     LEFT JOIN listing_images li ON l.id = li.listing_id
+    LEFT JOIN users_address ua ON l.user_id = ua.user_id
     WHERE l.location_id IN ($locationIdsPlaceholder) AND l.state IN ('available', 'pending_collection')
 ";
 
@@ -80,7 +82,8 @@ while ($row = $result->fetch_assoc()) {
         'username' => $row['username'],
         'location_name' => $row['location_name'],
         'listing_type' => $row['listing_type'],
-        'badge_class' => $badgeClass
+        'badge_class' => $badgeClass,
+        'postcode' => $row['postcode']
     ];
     $listings[] = $listing;
 }

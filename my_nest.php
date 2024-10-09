@@ -23,21 +23,6 @@ if ($result->num_rows > 0) {
     exit;
 }
 
-// Fetch user's postcode
-$sql = "SELECT postcode FROM users_address WHERE user_id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $user['id']);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows > 0) {
-    $user_address = $result->fetch_assoc();
-    $user_postcode = $user_address['postcode'];
-} else {
-    echo "<p>User address not found. Please <a href='update_address.php'>update your address</a>.</p>";
-    exit;
-}
-
 // Fetch locations the user is part of
 $sql = "SELECT location_id FROM users_locations WHERE user_id = ?";
 $stmt = $conn->prepare($sql);
@@ -48,11 +33,6 @@ $result = $stmt->get_result();
 $locationIds = [];
 while ($row = $result->fetch_assoc()) {
     $locationIds[] = $row['location_id'];
-}
-
-if (empty($locationIds)) {
-    echo "<p>You are not part of any location. Please <a href='join_location.php'>join a location</a> to see listings.</p>";
-    exit;
 }
 
 $locationIdsStr = implode(',', $locationIds);
@@ -152,24 +132,11 @@ $locationIdsStr = implode(',', $locationIds);
             padding: 5px 10px;
             border-radius: 5px;
         }
-        .btn-outline-success {
-            border: 1px solid #5cb85c;
-            color: #5cb85c;
-            background-color: transparent;
-            padding: 5px 10px;
-            border-radius: 5px;
-            text-decoration: none;
-        }
-        .btn-outline-success:hover {
-            background-color: #5cb85c;
-            color: #fff;
-            text-decoration: none;
-        }
         .modal-footer .btn-request {
             margin-left: auto;
         }
         .modal-title .badge {
-            margin-right: 10px; /* Add space between badge and title */
+            margin-right: 10px;
         }
         .filter-buttons {
             display: flex;
@@ -274,23 +241,29 @@ $locationIdsStr = implode(',', $locationIds);
 
 <div class="container mt-5">
     <h2>Available Listings</h2>
-    <div class="filter-buttons">
-        <div>
-            <button id="filter-all" class="btn btn-outline-success">All</button>
-            <button id="filter-sharing" class="btn btn-outline-success">For Sharing</button>
-            <button id="filter-wanted" class="btn btn-outline-success">Wanted</button>
+    <?php if (empty($locationIds)): ?>
+        <div class="alert alert-info" role="alert">
+            You are not part of any location. Please <a href="join_location.php" class="alert-link">join a location</a> to see listings.
         </div>
-        <div class="filter-search">
-            <input type="text" id="search-input" class="form-control" placeholder="Search listings...">
-            <div id="search-suggestions" class="search-suggestions"></div>
+    <?php else: ?>
+        <div class="filter-buttons">
+            <div>
+                <button id="filter-all" class="btn btn-outline-success active">All</button>
+                <button id="filter-sharing" class="btn btn-outline-success">For Sharing</button>
+                <button id="filter-wanted" class="btn btn-outline-success">Wanted</button>
+            </div>
+            <div class="filter-search">
+                <input type="text" id="search-input" class="form-control" placeholder="Search listings...">
+                <div id="search-suggestions" class="search-suggestions"></div>
+            </div>
         </div>
-    </div>
-    <div id="listings-container" class="mt-3">
-        <!-- Listings will be loaded here -->
-    </div>
-    <div class="btn-container">
-        <button id="load-more" class="btn btn-outline-success" style="display: none;">Show more</button>
-    </div>
+        <div id="listings-container" class="mt-3">
+            <!-- Listings will be loaded here -->
+        </div>
+        <div class="btn-container">
+            <button id="load-more" class="btn btn-outline-success" style="display: none;">Show more</button>
+        </div>
+    <?php endif; ?>
 </div>
 
 <!-- My nest Listings ENDS here -->
@@ -305,7 +278,6 @@ $locationIdsStr = implode(',', $locationIds);
     let offset = 0;
     const limit = 20;
     const locationIdsStr = "<?php echo $locationIdsStr; ?>";
-    const userPostcode = "<?php echo $user_postcode; ?>";
     let currentFilter = 'all';
     let searchTerm = '';
     const placeholderImage = 'img/listing_placeholder.jpeg';
@@ -549,7 +521,7 @@ $locationIdsStr = implode(',', $locationIds);
                                         <p><strong>Location:</strong> ${listing.location_name}</p>
                                         <p><strong>Listed by:</strong> ${listing.username}</p>
                                         <p><strong>Posted:</strong> ${timeElapsedString(listing.time_added)}</p>
-                                        <div id="map-${listing.id}" style="height: 400px; width: 100%;"></div>
+                                        ${listing.postcode ? `<div id="map-${listing.id}" style="height: 400px; width: 100%;"></div>` : ''}
                                         <textarea class="form-control mt-3" placeholder="Request message"></textarea>
                                     </div>
                                 </div>
@@ -563,35 +535,37 @@ $locationIdsStr = implode(',', $locationIds);
 
                     document.body.appendChild(modal);
 
-                    // Geocode the user's postcode and initialize the Leaflet map
-                    fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${userPostcode}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.length > 0) {
-                                const lat = data[0].lat;
-                                const lon = data[0].lon;
+                    if (listing.postcode) {
+                        // Geocode the listing's postcode and initialize the Leaflet map
+                        fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${listing.postcode}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.length > 0) {
+                                    const lat = data[0].lat;
+                                    const lon = data[0].lon;
 
-                                const map = L.map(`map-${listing.id}`).setView([lat, lon], 13);
+                                    const map = L.map(`map-${listing.id}`).setView([lat, lon], 13);
 
-                                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                                    maxZoom: 19,
-                                }).addTo(map);
+                                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                        maxZoom: 19,
+                                    }).addTo(map);
 
-                                L.circle([lat, lon], {
-                                    color: '#5CB853',
-                                    fillColor: '#5CB853',
-                                    fillOpacity: 0.5,
-                                    radius: 1000 // Radius in meters
-                                }).addTo(map);
+                                    L.circle([lat, lon], {
+                                        color: '#5CB853',
+                                        fillColor: '#5CB853',
+                                        fillOpacity: 0.5,
+                                        radius: 1000 // Radius in meters
+                                    }).addTo(map);
 
-                                // Invalidate map size after the modal is shown
-                                const modalElement = document.getElementById(`modal-${listing.id}`);
-                                modalElement.addEventListener('shown.bs.modal', () => {
-                                    map.invalidateSize();
-                                });
-                            }
-                        })
-                        .catch(error => console.error('Error:', error));
+                                    // Invalidate map size after the modal is shown
+                                    const modalElement = document.getElementById(`modal-${listing.id}`);
+                                    modalElement.addEventListener('shown.bs.modal', () => {
+                                        map.invalidateSize();
+                                    });
+                                }
+                            })
+                            .catch(error => console.error('Error:', error));
+                    }
                 });
 
                 offset += limit;
@@ -609,22 +583,29 @@ $locationIdsStr = implode(',', $locationIds);
     document.getElementById('filter-all').addEventListener('click', () => {
         offset = 0;
         currentFilter = 'all';
+        document.querySelectorAll('.filter-buttons button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('filter-all').classList.add('active');
         loadListings();
     });
 
     document.getElementById('filter-sharing').addEventListener('click', () => {
         offset = 0;
         currentFilter = 'sharing';
+        document.querySelectorAll('.filter-buttons button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('filter-sharing').classList.add('active');
         loadListings();
     });
 
     document.getElementById('filter-wanted').addEventListener('click', () => {
         offset = 0;
         currentFilter = 'wanted';
+        document.querySelectorAll('.filter-buttons button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('filter-wanted').classList.add('active');
         loadListings();
     });
 
     loadListings(); // Initial load
 </script>
+
 </body>
 </html>

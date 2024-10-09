@@ -51,7 +51,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             session_regenerate_id(true); // Prevent session fixation
             $_SESSION['loggedin'] = true;
             $_SESSION['username'] = $row['username'];
-            header('Location: index.php');
+            $_SESSION['user_image'] = $row['profile_image']; // Set profile image in session
+            header('Location: my_nest.php');
             exit;
         } else {
             // Password is incorrect

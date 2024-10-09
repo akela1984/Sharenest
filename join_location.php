@@ -83,7 +83,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 // Fetch all locations from the database
 $sql = "SELECT * FROM locations";
-$result = $conn->query($sql);
+$locationsResult = $conn->query($sql);
 
 // Fetch user's associated locations
 $userLocations = array();
@@ -121,7 +121,7 @@ $conn->close();
     <h2>Join Location</h2>
     <?php if (isset($error)) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error) . "</div>"; } ?>
     <div class="row">
-        <?php while ($row = $result->fetch_assoc()) { ?>
+        <?php while ($row = $locationsResult->fetch_assoc()) { ?>
             <div class="col-md-3 mb-3">
                 <div class="location-box">
                     <h5 class="card-title"><?php echo htmlspecialchars($row['location_name']); ?></h5>

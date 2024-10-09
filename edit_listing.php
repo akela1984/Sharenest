@@ -12,6 +12,9 @@ include 'connection.php';
 $success_message = '';
 $error_message = '';
 
+// Fetch the username from the session
+$username = $_SESSION['username'];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['update_listing'])) {
         $listing_id = intval($_POST['listing_id']);
@@ -55,9 +58,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt_delete_images->execute();
 
                 // Upload new images
-                $upload_dir = 'uploads/';
+                $upload_dir = 'uploads/listing_images/';
                 foreach ($_FILES['images']['tmp_name'] as $key => $tmp_name) {
-                    $file_name = basename($_FILES['images']['name'][$key]);
+                    $file_extension = pathinfo($_FILES['images']['name'][$key], PATHINFO_EXTENSION);
+                    $random_code = bin2hex(random_bytes(5)); // Generate a random code
+                    $file_name = $username . '_' . date('YmdHis') . '_' . $random_code . '.' . $file_extension;
                     $file_path = $upload_dir . $file_name;
                     if (move_uploaded_file($tmp_name, $file_path)) {
                         $sql_insert_image = "INSERT INTO listing_images (listing_id, image_url) VALUES (?, ?)";
@@ -147,7 +152,7 @@ while ($row = $result_images->fetch_assoc()) {
     <link href="css/styles.css" rel="stylesheet">
     <link href="css/edit_listing.css" rel="stylesheet">
 </head>
-<body>
+<body class="p-3 m-0 border-0 bd-example m-0 border-0">
 
 <!-- Navbar STARTS here -->
 <?php include 'navbar.php'; ?>
@@ -214,8 +219,13 @@ while ($row = $result_images->fetch_assoc()) {
         </div>
         
         <div class="d-flex justify-content-between">
-            <button type="submit" name="update_listing" class="btn btn-outline-success me-2">Update Listing</button>
-            <button type="submit" name="delete_listing" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to delete this listing?');">Delete Listing</button>
+            <div>
+                <button type="submit" name="update_listing" class="btn btn-outline-success me-2">Update Listing</button>
+                <button type="submit" name="delete_listing" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to delete this listing?');">Delete Listing</button>
+            </div>
+            <form action="my_listings.php" method="get">
+                <button type="submit" class="btn btn-outline-warning">Back to My Listings</button>
+            </form>
         </div>
     </form>
 </div>
