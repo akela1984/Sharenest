@@ -1,0 +1,1184 @@
+/* Global Styles */
+html, body {
+    height: 100%;
+    margin: 0;
+    width: 100%;
+}
+body {
+    background-color: #f8f9fa;
+    font-family: 'Arial', sans-serif;
+    color: #333;
+    display: flex;
+    flex-direction: column;
+
+}
+#content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-top: 70px; /* Add space at the top for the fixed navbar */
+    padding-bottom: 70px; /* Add space at the bottom for the fixed footer */
+    width: 100%; /* Ensure content spans full width */
+    box-sizing: border-box; /* Include padding and border in element's total width and height */
+
+}
+
+
+h2 {
+    text-align: center;
+    color: #5cb85c;
+    margin-bottom: 20px;
+}
+
+/* Navbar CSS STARTS here */
+
+.hamburger-dot {
+    position: absolute;
+    top: 8px; /* Adjust this value as needed */
+    right: 8px; /* Adjust this value as needed */
+    width: 12px;
+    height: 12px;
+    background-color: red;
+    border-radius: 50%;
+    display: none; /* Initially hidden */
+}
+.user-icon {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+.leaf-icon {
+    width: 24px;
+    height: 24px;
+    fill: green;
+}
+.green-points {
+    color: green;
+    display: flex;
+    align-items: center;
+}
+
+.navbar {
+    margin: 0;
+    padding: 10px 0; /* Adjust padding to make the navbar thicker */
+    height: 70px; /* Set the height to 70px */
+    width: 100%;
+    position: fixed; /* Change to fixed position */
+    top: 0; /* Position it at the top */
+    left: 0; /* Position it at the left */
+    z-index: 1030; /* Ensure it stays above other content */
+    background-color:  #f8f9fa; /* Add a background color to prevent transparency */
+}
+
+
+.navbar-brand {
+    font-weight: bold;
+    color: #5cb85c !important;
+}
+
+.navbar-nav .nav-link {
+    color: #5cb85c !important;
+    text-decoration: none !important; /* Remove underline */
+}
+
+.navbar-nav .spacer {
+    margin-right: 10px; /* Adjust the margin as needed */
+}
+
+.dropdown-item {
+    padding: 10px 20px; /* Increase padding for touch friendliness */
+    color: #5cb85c !important; /* Set text color to #5cb85c */
+    text-decoration: none !important; /* Remove underline */
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: #e9ecef; /* Change background color on hover/focus */
+    color: #5cb85c !important; /* Maintain text color on hover/focus */
+}
+
+.dropdown-item:active {
+    background-color: #e9ecef !important; /* Change background color on active state */
+    color: #5cb85c !important; /* Maintain text color on active state */
+    outline: none !important; /* Remove blue outline */
+    box-shadow: none !important; /* Remove focus box shadow */
+}
+
+.dropdown-menu .nav-item {
+    display: block;
+}
+
+.leaf-icon {
+    width: 24px;
+    height: 24px;
+    fill: green;
+}
+
+.green-points {
+    color: green;
+    display: flex;
+    align-items: center;
+}
+
+/* Align user icon with other icons */
+.user-icon {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+
+/* Custom styles for the dropdown in mobile view */
+@media (max-width: 992px) {
+    .d-flex.flex-column {
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+    .navbar-collapse {
+        background-color:  #f8f9fa
+    }
+
+    .horizontal-buttons,
+    .d-flex.flex-row,
+    .nav-link.dropdown-toggle {
+        justify-content: center;
+        width: auto;
+        margin-bottom: 15px; /* Add space between the divs */
+    }
+
+    .horizontal-buttons,
+    .d-flex.flex-row {
+        padding-bottom: 15px; /* Add padding at the bottom for flex-row */
+    }
+
+    .horizontal-buttons {
+        margin-bottom: 20px; /* Additional margin for spacing */
+    }
+
+    .d-flex.flex-row {
+        margin-bottom: 20px; /* Additional margin for spacing */
+    }
+
+    .dropdown-menu {
+        width: 100%; /* Full width */
+        padding: 10px; /* Padding for touch friendliness */
+        font-size: 1.1rem; /* Increase font size */
+    }
+
+    .dropdown-item {
+        padding: 10px 20px; /* Increase padding for touch friendliness */
+        color: #5cb85c !important; /* Set text color to #5cb85c */
+    }
+
+    .dropdown-menu .nav-item {
+        display: block;
+    }
+}
+
+.badge {
+    padding: 0.5em 0.75em;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.375rem;
+}
+
+.position-absolute {
+    position: absolute !important;
+}
+
+.top-0 {
+    top: 0 !important;
+}
+
+.start-100 {
+    left: 100% !important;
+}
+
+.translate-middle {
+    transform: translate(-50%, -50%) !important;
+}
+
+.rounded-circle {
+    border-radius: 50% !important;
+}
+
+.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+/* Remove default focus outline and add custom styles */
+.nav-link:focus,
+.dropdown-item:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Navbar CSS ENDS here */
+
+
+
+
+
+/* Sign In and Register CSS STARTS here */
+form {
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 30px;
+}
+
+.form-label {
+    font-weight: bold;
+    color: #333;
+}
+
+.form-control {
+    border-radius: 5px;
+    border: 1px solid #ced4da;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #5cb85c;
+    box-shadow: 0 0 5px rgba(92, 184, 92, 0.5);
+}
+
+.btn-outline-success {
+    border-radius: 5px;
+    border: 2px solid #5cb85c;
+    color: #5cb85c;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-success:hover {
+    background-color: #5cb85c;
+    color: #fff;
+}
+
+.alert-danger {
+    border-radius: 5px;
+}
+
+a {
+    color: #5cb85c;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Sign In and Register CSS ENDS here */
+
+/* Join Location CSS STARTS here */
+.location-container {
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 40px; /* Increased padding for more space */
+    margin-top: 50px; /* Adjusted margin to position higher on the page */
+}
+
+.location-box {
+    border-radius: 5px;
+    border: 1px solid #ced4da;
+    transition: all 0.3s ease;
+    padding: 20px; /* Adjusted padding for more space */
+    margin-bottom: 20px; /* Added margin between boxes */
+}
+
+.location-box:hover {
+    border-color: #5cb85c;
+    box-shadow: 0 0 5px rgba(92, 184, 92, 0.5);
+}
+
+.btn-join,
+.btn-leave {
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.btn-join {
+    border: 2px solid #5cb85c;
+    color: #5cb85c;
+}
+
+.btn-leave {
+    background-color: #5cb85c;
+    color: #fff;
+}
+
+.btn-join:hover {
+    background-color: #5cb85c;
+    color: #fff;
+}
+
+.btn-leave:hover {
+    background-color: #4a934a;
+}
+
+/* Join Location CSS ENDS here */
+
+/* Footer CSS STARTS here */
+.footer {
+    background-color: #f8f9fa;
+    border-top: 4px solid #5cb85c;
+    padding: 30px 0;
+    color: #555;
+    font-size: 14px;
+}
+
+.footer-logo img {
+    height: 40px;
+    margin-bottom: 20px;
+}
+
+.footer p {
+    margin-bottom: 20px;
+}
+
+.footer-links h5,
+.follow-us h5 {
+    color: #555;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.footer-links ul,
+.follow-us ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-links ul li,
+.follow-us ul li {
+    margin-bottom: 10px;
+}
+
+.footer-links ul li a,
+.follow-us ul li a {
+    color: #555;
+    text-decoration: none;
+    transition: color 0.3s;
+    display: flex;
+    align-items: center;
+}
+
+.footer-links ul li a svg,
+.follow-us ul li a svg {
+    margin-right: 8px;
+    fill: currentColor;
+}
+
+.footer-links ul li a:hover,
+.follow-us ul li a:hover {
+    color: #5cb85c;
+}
+
+/* Media Query for Footer */
+@media (max-width: 992px) {
+    .footer .row {
+        flex-wrap: wrap;
+    }
+
+    .footer .col-lg {
+        width: 100%;
+        margin-bottom: 30px;
+    }
+}
+/* Footer CSS ENDS here */
+
+
+
+/* My Listings Specific CSS STARTS here */
+.my-listings-container {
+    margin-top: 50px;
+}
+
+.my-listings-title {
+    text-align: center;
+    color: #5cb85c;
+    margin-bottom: 20px;
+}
+
+.my-listings-table {
+    width: 100%;
+    max-width: 100%;
+    margin-bottom: 1rem;
+    background-color: transparent;
+}
+
+.my-listings-table th,
+.my-listings-table td {
+    padding: 0.75rem;
+    vertical-align: middle;
+    border-top: 1px solid #dee2e6;
+}
+
+.my-listings-table thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.my-listings-table tbody + tbody {
+    border-top: 2px solid #dee2e6;
+}
+
+/* Responsive Image */
+.my-listings-image {
+    max-width: 100px;
+    max-height: 100px;
+    object-fit: cover;
+}
+
+/* Pagination */
+.pagination {
+    margin-top: 20px;
+}
+
+.pagination .page-link {
+    color: #5cb85c;
+    border: 1px solid #5cb85c;
+    margin: 0 2px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.pagination .page-link:hover {
+    background-color: #5cb85c;
+    color: #fff;
+}
+
+.pagination .active .page-link {
+    background-color: #5cb85c;
+    border-color: #5cb85c;
+    color: #fff;
+}
+
+.pagination .disabled .page-link {
+    color: #ccc;
+    border-color: #ccc;
+}
+
+/* Badges */
+.badge-wanted {
+    background-color: #d9534f;
+    color: white;
+}
+
+.badge-sharing {
+    background-color: #5cb85c;
+    color: white;
+}
+
+.badge-available {
+    background-color: #5cb85c;
+    color: white;
+}
+
+.badge-unavailable {
+    background-color: #d9534f;
+    color: white;
+}
+
+.badge-pending {
+    background-color: #f0ad4e;
+    color: white;
+}
+
+.badge-review {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Action buttons */
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.my-listings-edit-btn,
+.my-listings-delete-btn {
+    flex: 1;
+    display: block;
+}
+
+/* Ensure no unwanted styling on forms */
+.delete-form,
+.edit-form {
+    display: inline;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+}
+
+/* My Listings Specific CSS ENDS here */
+
+/* Edit Listing Specific CSS STARTS here */
+.edit-listing-container {
+    margin-top: 50px;
+    max-width: 600px;
+}
+
+.edit-listing-title {
+    text-align: center;
+    color: #5cb85c;
+    margin-bottom: 20px;
+}
+
+/* Ensure buttons and forms are styled consistently */
+.btn-outline-success,
+.btn-outline-danger {
+    transition: all 0.3s ease;
+}
+
+.btn-outline-success {
+    border-color: #5cb85c;
+    color: #5cb85c;
+}
+
+.btn-outline-danger {
+    border-color: #d9534f;
+    color: #d9534f;
+}
+
+.btn-outline-success:hover {
+    background-color: #5cb85c;
+    color: #fff;
+}
+
+.btn-outline-danger:hover {
+    background-color: #d9534f;
+    color: #fff;
+}
+
+/* Form styles */
+.form-label {
+    font-weight: bold;
+    color: #333;
+}
+
+.form-control,
+.form-select {
+    border-radius: 5px;
+    border: 1px solid #ced4da;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #5cb85c;
+    box-shadow: 0 0 5px rgba(92, 184, 92, 0.5);
+}
+
+/* Red asterisk for required fields */
+.form-label .text-danger {
+    color: #d9534f;
+}
+
+/* Image styles */
+.my-listings-image {
+    max-width: 100px;
+    max-height: 100px;
+    margin-right: 10px;
+    object-fit: cover;
+    display: inline-block;
+}
+
+/* Edit Listing Specific CSS ENDS here */
+
+/* Create Listing Specific CSS STARTS here */
+.alert-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Create Listing Specific CSS ENDS here */
+
+/* My Messages CSS STARTS here */
+.conversation-box {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background-color: #f9f9f9;
+    position: relative;
+}
+
+.conversation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.conversation-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.conversation-footer {
+    margin-top: auto;
+    font-size: 0.9rem;
+    color: #888;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.modal-dialog-scrollable {
+    max-height: 90vh;
+}
+
+/* Styles for message bubbles */
+.message-bubble {
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    max-width: 75%;
+}
+
+/* Styles for left message bubbles (grey) */
+.message-bubble-left {
+    background-color: #e9ecef;
+    align-self: flex-start;
+    color: #000; /* Black text */
+}
+
+/* Styles for right message bubbles (green) */
+.message-bubble-right {
+    background-color: #5cb85c;
+    color: #fff; /* White text */
+    align-self: flex-end;
+}
+
+/* Styles for map links inside message bubbles */
+.message-bubble .map-link {
+    text-decoration: none;
+    color: inherit; /* Inherit color from bubble */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.message-bubble .map-link svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor; /* Inherit color from bubble */
+}
+
+.form-container {
+    width: 100%;
+}
+
+.suggestion-buttons {
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+}
+
+.suggestion-button {
+    font-size: 0.8rem;
+    margin: 0 5px;
+}
+
+.badge-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.badge-container .badge {
+    margin-bottom: 5px;
+}
+
+.seen-status {
+    font-size: 0.8rem;
+    color: yellow;
+}
+
+.conversation-header .badge.unread-badge {
+    margin-right: 5px;
+}
+
+.map-links {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.map-link {
+    text-decoration: none;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.map-link svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* My Messages CSS ENDS here */
+
+/* Admin Panel CSS Starts here */
+.nav-link {
+    color: green !important;
+}
+
+.table-responsive {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* Admin Panel CSS ENDS here */
+
+/* My Dashboard CSS Starts here */
+.circle-chart {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 20px auto;
+}
+
+.circle-chart canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.circle-chart .circle-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.legend {
+    text-align: center;
+    margin-top: 10px;
+}
+
+.legend span {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: 5px;
+}
+
+.blue {
+    background-color: #007bff;
+}
+
+.grey {
+    background-color: #e9ecef;
+}
+
+.red {
+    background-color: #dc3545;
+}
+
+.orange {
+    background-color: #ffc107;
+}
+
+.green {
+    background-color: #28a745;
+}
+
+@media (max-width: 576px) {
+    .circle-chart {
+        width: 60px;
+        height: 60px;
+        margin: 10px auto;
+    }
+
+    .circle-chart .circle-text {
+        font-size: 0.7rem;
+    }
+}
+
+/* My Dashboard CSS ENDS here */
+
+/* My Nest CSS Starts here */
+
+
+/* Filter Buttons */
+.filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.filter-buttons .btn-group {
+    flex: 1;
+    max-width: 200px;
+}
+.filter-buttons button {
+    flex: 1;
+    margin-right: 5px;
+}
+.filter-search {
+    position: relative;
+    width: 100%;
+    margin-top: 10px;
+}
+.filter-search input {
+    width: 100%;
+}
+.search-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 0 0 5px 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: none;
+}
+.search-suggestion {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+}
+.search-suggestion img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    margin-right: 10px;
+}
+.search-suggestion span {
+    flex: 1;
+}
+.badge-suggestion-sharing {
+    background-color: #5CB853;
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+.badge-suggestion-wanted {
+    background-color: #d9534f;
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+/* Listing Box */
+.listing-box {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background-color: #f9f9f9;
+    position: relative;
+}
+.listing-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+.listing-header-left {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+}
+.listing-header-right {
+    display: flex;
+    align-items: center;
+}
+.listing-content {
+    display: flex;
+    flex-direction: column;
+}
+@media (min-width: 576px) {
+    .listing-content {
+        flex-direction: row;
+    }
+}
+.listing-image {
+    width: 100%;
+    max-width: 225px;
+    height: auto;
+    max-height: 150px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+@media (min-width: 576px) {
+    .listing-image {
+        margin-right: 15px;
+        margin-bottom: 0;
+    }
+}
+.listing-details {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+.listing-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+.listing-description {
+    margin-top: 10px;
+    color: #555;
+}
+.listing-footer {
+    margin-top: auto;
+    font-size: 0.9rem;
+    color: #888;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.badge-sharing {
+    background-color: #5CB853;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+.badge-wanted {
+    background-color: #d9534f;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+.modal-footer .btn-request {
+    margin-left: auto;
+}
+.modal-title .badge {
+    margin-right: 10px;
+}
+.filter-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+}
+.filter-search {
+    position: relative;
+    flex-grow: 1;
+}
+@media (max-width: 576px) {
+    .filter-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .filter-search {
+        width: 100%;
+        margin-top: 10px;
+    }
+    .filter-buttons .btn-group,
+    .filter-buttons button,
+    .filter-search {
+        flex: 1 1 auto;
+    }
+    .filter-buttons .btn-group {
+        flex: 2 1 auto;
+    }
+    .filter-buttons button {
+        flex: 1 1 auto;
+    }
+}
+.carousel-item img {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: contain;
+    margin: 0 auto;
+}
+.carousel-indicators {
+    bottom: -40px;
+}
+.carousel-control-prev,
+.carousel-control-next {
+    filter: invert(100%);
+}
+#map {
+    height: 400px;
+}
+.btn-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+.search-suggestions {
+    position: absolute;
+    z-index: 1000;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 0 0 5px 5px;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: none;
+}
+.search-suggestions-header {
+    padding: 10px;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+}
+.search-suggestion {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+.search-suggestion img {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 5px;
+    margin-right: 10px;
+}
+.search-suggestion:hover {
+    background-color: #f0f0f0;
+}
+.badge-suggestion-sharing {
+    background-color: #5cb85c;
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-left: auto;
+    font-size: 12px;
+}
+.badge-suggestion-wanted {
+    background-color: #d9534f;
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    margin-left: auto;
+    font-size: 12px;
+}
+.badge-under-review {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 5px;
+}
+.badge-under-review-circle {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    background-color: orange;
+    border-radius: 50%;
+    color: black;
+    text-align: center;
+    line-height: 20px;
+    font-weight: bold;
+}
+.badge-under-review-text {
+    margin-left: 5px;
+    font-size: 14px;
+    font-weight: bold;
+    color: black;
+}
+.tick {
+    margin-left: 10px;
+    color: green;
+}
+/* Dropdown adjustments */
+.dropdown-menu {
+    max-width: 100%;
+    white-space: nowrap;
+}
+.dropdown-item {
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* My Nest CSS ENDS here */
+
+
+
+/* Profile CSS STARTS here */
+.form-control[readonly],
+.form-control:disabled {
+    background-color: #e9ecef; /* Grey out the background */
+    opacity: 1; /* Ensure the text is still readable */
+}
+
+/* Profile CSS ENDS here */
+
+
+
+.listing-box.pending-collection {
+    background-color: #f2f2f2;
+    position: relative;
+    opacity: 0.6;
+    pointer-events: none; /* Prevent interaction with the listing */
+}
+
+.listing-box.pending-collection .watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2rem;
+    color: #f0ad4e;
+    font-weight: bold;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.listing-box .listing-content,
+.listing-box .listing-footer {
+    pointer-events: auto; /* Allow interaction with these elements */
+}
+
+
+ .badge-under-review {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 5px;
+    }
+    
+    .badge-under-review-circle {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        background-color: orange;
+        border-radius: 50%;
+        color: black;
+        text-align: center;
+        line-height: 20px;
+        font-weight: bold;
+    }
+    
+    .badge-under-review-text {
+        margin-left: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        color: black;
+    }
+
+    /* Custom styles for 404 page */
+    .error-404 {
+        font-size: 100px;
+        color: #28a745;
+    }
+    .funny-text {
+        font-size: 24px;
+        color: #28a745;
+        margin-top: 20px;
+    }
