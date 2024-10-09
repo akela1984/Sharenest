@@ -138,15 +138,16 @@ if (isset($_SESSION['firstname']) && !empty($_SESSION['firstname'])) {
                             <span class="ms-1">Hi, <?php echo htmlspecialchars($displayName); ?></span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li class="nav-item"><a class="dropdown-item" href="my_dashboard.php">Dashboard</a></li>
-                            <li class="nav-item"><a class="dropdown-item" href="my_messages.php">My Messages</a></li>
-                            <li class="nav-item"><a class="dropdown-item" href="profile.php">My Profile</a></li>
-                            <li class="nav-item"><a class="dropdown-item" href="join_location.php">My Locations</a></li>
-                            <?php if ($is_admin) { ?>
-                            <li class="nav-item"><a class="dropdown-item" href="admin_panel.php">Admin Panel</a></li>
-                            <?php } ?>
-                            <li class="nav-item"><a class="dropdown-item" href="logout.php">Logout</a></li>
-                        </ul>
+    <li class="nav-item"><a class="dropdown-item" href="my_dashboard.php">Dashboard</a></li>
+    <li class="nav-item"><a class="dropdown-item" href="my_messages.php">My Messages</a></li>
+    <li class="nav-item"><a class="dropdown-item" href="profile.php">My Profile</a></li>
+    <li class="nav-item"><a class="dropdown-item" href="join_location.php">My Locations</a></li>
+    <?php if ($is_admin) { ?>
+        <li class="nav-item"><a class="dropdown-item" href="admin_panel.php">Admin Panel</a></li>
+        <li class="nav-item"><a class="dropdown-item" href="results.php">Survey Results</a></li>
+    <?php } ?>
+    <li class="nav-item"><a class="dropdown-item" href="logout.php">Logout</a></li>
+</ul>
                     <?php } ?>
                 </div>
             </div>

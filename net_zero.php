@@ -1,134 +1,35 @@
 <?php
 include 'session_timeout.php';
-include 'connection.php';
+include 'connection.php'; 
 
-// Redirect non-logged-in users to the sign-in page
-if (!isset($_SESSION['loggedin'])) {
-    header('Location: signin.php');
-    exit;
+// Calculate total CO2 savings
+$query = "SELECT SUM(co2_saved_per_item * total_listings) AS total_co2_saved FROM listing_categories";
+$result = mysqli_query($conn, $query);
+$total_co2_saved = 0;
+
+if ($result && mysqli_num_rows($result) > 0) {
+    $row = mysqli_fetch_assoc($result);
+    $total_co2_saved = $row['total_co2_saved'];
 }
 
-// Generate CSRF token if it doesn't exist
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-$success_message = '';
-$error_message = '';
-
-// Fetch user's associated locations
-$userLocations = array();
-$sql = "SELECT l.location_id, l.location_name FROM users_locations ul JOIN locations l ON ul.location_id = l.location_id WHERE ul.user_id = (SELECT id FROM users WHERE username = ?)";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $_SESSION['username']);
-$stmt->execute();
-$userResult = $stmt->get_result();
-while ($row = $userResult->fetch_assoc()) {
-    $userLocations[] = $row;
-}
-
-if (empty($userLocations)) {
-    $error_message = "You are not associated with any location. Please <a href='join_location.php' class='alert-link'>join a location</a> to create a listing.";
-}
-
-// Fetch categories from listing_categories table
-$categories = array();
-$sql_categories = "SELECT id, name FROM listing_categories";
-$result_categories = $conn->query($sql_categories);
-
-if ($result_categories->num_rows > 0) {
-    while ($row = $result_categories->fetch_assoc()) {
-        $categories[] = $row;
-    }
-} else {
-    $error_message = "No categories available.";
-}
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($userLocations)) {
-    // Check CSRF token
-    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
-        die("Invalid CSRF token");
-    }
-
-    $title = $_POST['title'];
-    $location_id = $_POST['location_id'];
-    $listing_description = $_POST['listing_description'];
-    $listing_type = $_POST['listing_type'];
-    $category_id = $_POST['category_id'];
-    $state = 'available'; // Set default state to available
-    
-    // Fetch user_id from session
-    $sql_user = "SELECT id FROM users WHERE username = ?";
-    $stmt_user = $conn->prepare($sql_user);
-    $stmt_user->bind_param("s", $_SESSION['username']);
-    $stmt_user->execute();
-    $result_user = $stmt_user->get_result();
-    $user = $result_user->fetch_assoc();
-    $user_id = $user['id'];
-
-    // Insert new listing
-    $sql_insert = "
-        INSERT INTO listings (title, location_id, listing_description, user_id, state, listing_type, category_id) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    ";
-    $stmt_insert = $conn->prepare($sql_insert);
-    $stmt_insert->bind_param("sisissi", $title, $location_id, $listing_description, $user_id, $state, $listing_type, $category_id);
-    
-    if ($stmt_insert->execute()) {
-        $listing_id = $stmt_insert->insert_id;
-        $success_message = "Listing created successfully. You have earned a green point!";
-
-        // Update user green points
-        $sql_update_points = "UPDATE users SET green_points = green_points + 1 WHERE id = ?";
-        $stmt_update_points = $conn->prepare($sql_update_points);
-        $stmt_update_points->bind_param("i", $user_id);
-        $stmt_update_points->execute();
-
-        // Handle image upload
-        if (!empty($_FILES['images']['name'][0])) {
-            $upload_dir = 'uploads/listing_images/';
-            $username = $_SESSION['username'];
-            foreach ($_FILES['images']['tmp_name'] as $key => $tmp_name) {
-                $file_ext = pathinfo($_FILES['images']['name'][$key], PATHINFO_EXTENSION);
-                $new_file_name = $username . '_' . date('YmdHis') . '_' . bin2hex(random_bytes(5)) . '.' . $file_ext;
-                $file_path = $upload_dir . $new_file_name;
-                if (move_uploaded_file($tmp_name, $file_path)) {
-                    $sql_insert_image = "INSERT INTO listing_images (listing_id, image_url) VALUES (?, ?)";
-                    $stmt_insert_image = $conn->prepare($sql_insert_image);
-                    $stmt_insert_image->bind_param("is", $listing_id, $file_path);
-                    $stmt_insert_image->execute();
-                }
-            }
-        }
-
-    } else {
-        $error_message = "Error creating listing.";
-    }
-}
-
-$conn->close();
+mysqli_close($conn);
 ?>
 
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    
-    <!-- SEO Meta Tags -->
-    <title>ShareNest - Community for Sharing Unwanted Goods in the Lothian area</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Net Zero & CO2 Savings | ShareNest</title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-16S7LDQL7H"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-16S7LDQL7H');
+</script>
 
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-16S7LDQL7H"></script>
-    <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-16S7LDQL7H');
-    </script>
-
-    <!-- Hotjar Tracking Code for Sharenest.org -->
+<!-- Hotjar Tracking Code for Sharenest.org -->
 <script>
     (function(h,o,t,j,a,r){
         h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
@@ -140,9 +41,9 @@ $conn->close();
     })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
 </script>
 
-<!--  Google Ad blocking recovery script -->
+  <!--  Google Ad blocking recovery script -->
 
-<script async src="https://fundingchoicesmessages.google.com/i/pub-7451119341261729?ers=1" nonce="rOmr667MK6arcexjSTnhMg"></script><script nonce="rOmr667MK6arcexjSTnhMg">(function() {function signalGooglefcPresent() {if (!window.frames['googlefcPresent']) {if (document.body) {const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe);} else {setTimeout(signalGooglefcPresent, 0);}}}signalGooglefcPresent();})();</script>
+  <script async src="https://fundingchoicesmessages.google.com/i/pub-7451119341261729?ers=1" nonce="rOmr667MK6arcexjSTnhMg"></script><script nonce="rOmr667MK6arcexjSTnhMg">(function() {function signalGooglefcPresent() {if (!window.frames['googlefcPresent']) {if (document.body) {const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe);} else {setTimeout(signalGooglefcPresent, 0);}}}signalGooglefcPresent();})();</script>
 
 <!--  Google Ad blocking recovery Error protection message script -->
 
@@ -185,8 +86,8 @@ $conn->close();
 
 
 
-     <!-- SEO Meta Tags -->
-     <meta name="description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free across the UK. Connect with neighbours and give a second life to items you no longer need.">
+<!-- SEO Meta Tags -->
+<meta name="description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free across the UK. Connect with neighbours and give a second life to items you no longer need.">
 <meta name="keywords" content="share, unwanted goods, free items, community sharing, UK, give away, second hand, recycle, reuse">
 <meta name="robots" content="index, follow">
 <meta name="author" content="ShareNest">
@@ -232,11 +133,50 @@ $conn->close();
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
 <link href="css/styles.css" rel="stylesheet">
-
     <style>
-        .alert-container {
-            max-width: 800px;
-            margin: 0 auto;
+        .hero-banner {
+            background-color: #5cb85c;
+            color: white;
+            padding: 50px 20px;
+            text-align: center;
+        }
+        .hero-banner h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .content-section {
+            padding: 40px 20px;
+        }
+        .content-section h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+        }
+        .content-section p {
+            font-size: 1.2rem;
+            line-height: 1.6;
+        }
+        .content-section ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        .content-section ul li {
+            padding: 10px 0;
+            font-size: 1.1rem;
+        }
+        .co2-list {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .reference-links {
+            margin-top: 30px;
+        }
+        .reference-links a {
+            color: #5cb85c;
+            text-decoration: none;
+        }
+        .reference-links a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -245,91 +185,62 @@ $conn->close();
 <!-- Navbar STARTS here -->
 <?php include 'navbar.php'; ?>
 <!-- Navbar ENDS here -->
-
-<div id="content" class="container edit-listing-container">
-    <h2 class="edit-listing-title">Create Listing</h2>
-
-    <?php if ($success_message): ?>
-        <div class="alert alert-success alert-container" role="alert">
-            <?php echo $success_message; ?>
-        </div>
-    <?php endif; ?>
-    <?php if ($error_message): ?>
-        <div class="alert alert-info alert-container" role="alert">
-            <?php echo $error_message; ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (!empty($userLocations)) { ?>
-        <form action="create_listing.php" method="POST" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
-            
-            <div class="mb-3">
-                <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="title" name="title" required>
-            </div>
-
-            <div class="mb-3">
-                <label for="listing_description" class="form-label">Description <span class="text-danger">*</span></label>
-                <textarea class="form-control" id="listing_description" name="listing_description" rows="4" required></textarea>
-            </div>
-
-            <div class="mb-3">
-                <label for="location_id" class="form-label">Location <span class="text-danger">*</span></label>
-                <select class="form-select" id="location_id" name="location_id" required>
-                    <?php foreach ($userLocations as $location) { ?>
-                        <option value="<?php echo htmlspecialchars($location['location_id']); ?>"><?php echo htmlspecialchars($location['location_name']); ?></option>
-                    <?php } ?>
-                </select>
-            </div>
-            
-            <div class="mb-3">
-                <label for="listing_type" class="form-label">Type <span class="text-danger">*</span></label>
-                <select class="form-select" id="listing_type" name="listing_type" required>
-                    <option value="sharing">For Sharing</option>
-                    <option value="wanted">Wanted</option>
-                </select>
-            </div>
-
-            <div class="mb-3">
-                <label for="category_id" class="form-label">Category <span class="text-danger">*</span></label>
-                <select class="form-select" id="category_id" name="category_id" required>
-                    <?php foreach ($categories as $category) { ?>
-                        <option value="<?php echo htmlspecialchars($category['id']); ?>">
-                            <?php echo htmlspecialchars($category['name']); ?>
-                        </option>
-                    <?php } ?>
-                </select>
-                <small class="form-text text-muted">The selected category is used solely to calculate the average CO2 savings from rehoming your unwanted item. However, it is crucial to choose the correct category to ensure accurate calculations. Thank you!
-
-                </small>
-            </div>
-
-            <div class="mb-3">
-                <label for="images" class="form-label" data-bs-toggle="tooltip" data-bs-placement="top" title="You can upload up to 5 images.">Upload Images</label>
-                <input type="file" class="form-control" id="images" name="images[]" multiple>
-                <small class="form-text text-muted">You can upload up to 5 images.</small>
-            </div>
-            
-            <!-- Hidden field for state -->
-            <input type="hidden" name="state" value="available">
-
-            <button type="submit" class="btn btn-outline-success">Create Listing</button>
-        </form>
-    <?php } ?>
+<!-- Contact Us Information STARTS here -->
+<div id="content" class="container mt-5">
+    
+<!-- Hero Banner -->
+<div class="hero-banner">
+    <h1>Net Zero & CO2 Savings Explained</h1>
+    <p>Together, we have saved <strong><?php echo htmlspecialchars($total_co2_saved); ?></strong> kg of CO2!</p>
 </div>
 
-<!-- Bootstrap Bundle with Popper -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-</script>
-<button id="install-button" style="display: none;">Install Sharenest</button>
+<!-- Content Section -->
+<div class="container content-section">
+    <h2>How is CO2 Savings Calculated?</h2>
+    <p>Every time an item is reused instead of being disposed of, it saves a significant amount of carbon dioxide emissions. Reusing items reduces the need for new production, transportation, and waste disposal, all of which contribute to CO2 emissions.</p>
+    
+    <h2>Average CO2 Saved Per Item Category</h2>
+    <div class="co2-list">
+        <ul>
+            <li><strong>Furniture:</strong> 100 kg CO2 saved per item</li>
+            <li><strong>Electronics:</strong> 200 kg CO2 saved per item</li>
+            <li><strong>Appliances:</strong> 150 kg CO2 saved per item</li>
+            <li><strong>Clothing & Accessories:</strong> 50 kg CO2 saved per item</li>
+            <li><strong>Toys & Games:</strong> 30 kg CO2 saved per item</li>
+            <li><strong>Books, Music & Media:</strong> 20 kg CO2 saved per item</li>
+            <li><strong>Sports & Outdoor:</strong> 120 kg CO2 saved per item</li>
+            <li><strong>Home Decor:</strong> 80 kg CO2 saved per item</li>
+            <li><strong>Tools & DIY:</strong> 90 kg CO2 saved per item</li>
+            <li><strong>Baby & Kids:</strong> 60 kg CO2 saved per item</li>
+            <li><strong>Kitchen & Dining:</strong> 40 kg CO2 saved per item</li>
+            <li><strong>Health & Beauty:</strong> 25 kg CO2 saved per item</li>
+            <li><strong>Pet Supplies:</strong> 35 kg CO2 saved per item</li>
+            <li><strong>Office & School Supplies:</strong> 70 kg CO2 saved per item</li>
+            <li><strong>Garden & Outdoors:</strong> 110 kg CO2 saved per item</li>
+        </ul>
+    </div>
+
+    <h2>Why CO2 Savings Matter</h2>
+    <p>Reducing CO2 emissions is crucial in the fight against climate change. By giving items a second life, we can help to slow down the effects of global warming, reduce landfill waste, and conserve valuable resources.</p>
+    
+    <div class="reference-links">
+        <h3>Learn More About CO2 Emissions & Environmental Impact:</h3>
+        <ul>
+            <li><a href="https://www.epa.gov/ghgemissions/global-greenhouse-gas-emissions-data" target="_blank">Global Greenhouse Gas Emissions Data (EPA)</a></li>
+            <li><a href="https://www.carbontrust.com/resources/faqs-on-carbon-footprinting" target="_blank">FAQs on Carbon Footprinting (Carbon Trust)</a></li>
+            <li><a href="https://www.nrdc.org/stories/recycling-and-climate-change" target="_blank">Recycling & Climate Change (NRDC)</a></li>
+        </ul>
+    </div>
+</div>
+</div>
+</div>
+
 <!-- Footer STARTS here -->
 <?php include 'footer.php'; ?>
 <!-- Footer ENDS here -->
+
+<!-- Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<button id="install-button" style="display: none;">Install Sharenest</button>
 </body>
 </html>

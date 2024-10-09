@@ -12,6 +12,17 @@ $isLoggedIn = isset($_SESSION['user_id']);
 $username = $isLoggedIn && isset($_SESSION['username']) ? $_SESSION['username'] : '';
 $firstname = $isLoggedIn && isset($_SESSION['firstname']) ? $_SESSION['firstname'] : '';
 $displayName = !empty($firstname) ? $firstname : $username;
+
+// Fetch total CO2 saved
+$sql = "SELECT SUM(co2_saved_per_item * total_listings) AS total_co2_saved FROM listing_categories";
+$result = mysqli_query($conn, $sql);
+$total_co2_saved = 0;
+
+if ($result && mysqli_num_rows($result) > 0) {
+    $row = mysqli_fetch_assoc($result);
+    $total_co2_saved = $row['total_co2_saved'];
+}
+
 ?>
 
 <!doctype html>
@@ -209,6 +220,69 @@ gtag('config', 'G-16S7LDQL7H');
             border-radius: 5px;
             text-transform: uppercase;
         }
+ /* Green Ribbon Styling */
+ .green-ribbon {
+            width: 100%;
+            background-color: #4CAF50; /* Green color */
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            font-size: 12px;
+            position: relative;
+            top: 0;
+            left: 0;
+        }
+
+        .green-ribbon a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .green-ribbon span {
+            font-weight: bold;
+            font-size: 12px;
+            color: #ffeb3b; /* Highlight number in yellow */
+        }
+
+        .green-ribbon a:hover {
+            text-decoration: underline;
+        }
+
+        .floating-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 60px; /* Adjust size as needed */
+    height: 60px; /* Adjust size as needed */
+    background-color: green; /* Circle colour */
+    border-radius: 50%; /* Makes the button circular */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Adds shadow for depth */
+    text-align: center;
+    line-height: 60px; /* Centers text vertically */
+    color: white; /* Text colour */
+    font-size: 14px; /* Adjust font size as needed */
+    text-decoration: none; /* Removes underline */
+    z-index: 1000; /* Ensures button is above other elements */
+    transition: background-color 0.3s; /* Smooth background transition */
+}
+
+.floating-button:hover {
+    background-color: darkgreen; /* Change colour on hover */
+}
+
+/* Mobile-friendly adjustments */
+@media (max-width: 600px) {
+    .floating-button {
+        width: 50px; /* Smaller size on mobile */
+        height: 50px; /* Smaller size on mobile */
+        line-height: 50px; /* Center text vertically */
+        font-size: 12px; /* Adjust font size for mobile */
+    }
+}
+
+
+
     </style>
 </head>
 
@@ -218,6 +292,12 @@ gtag('config', 'G-16S7LDQL7H');
 <?php include 'navbar.php'; ?>
 <!-- Navbar ENDS here -->
 <div id="content">
+
+<!-- Green Ribbon STARTS here -->
+<div class="green-ribbon">
+    <a href="net_zero.php">Together, we saved <span><?php echo number_format($total_co2_saved, 2); ?></span> kg CO2 so far!</a>
+</div>
+<!-- Green Ribbon ENDS here -->
 
 <!-- Hero Section STARTS here -->
 <div class="container-fluid px-0 mt-3">
@@ -270,6 +350,9 @@ gtag('config', 'G-16S7LDQL7H');
     </a>
 </div>
 <!-- Register Section ENDS here -->
+
+<a href="survey.php" class="floating-button">Survey</a>
+
 
 
 <script>

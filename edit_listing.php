@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         }
 
-                        // Delete old image records from database
+                        // Delete old image records from the database
                         $sql_delete_images = "DELETE FROM listing_images WHERE listing_id = ?";
                         $stmt_delete_images = $conn->prepare($sql_delete_images);
                         if ($stmt_delete_images === false) {
@@ -189,6 +189,14 @@ $result_images = $stmt_images->get_result();
 $images = [];
 while ($row = $result_images->fetch_assoc()) {
     $images[] = htmlspecialchars($row['image_url']);
+}
+
+// Fetch categories
+$sql_categories = "SELECT id, name FROM listing_categories";
+$result_categories = $conn->query($sql_categories);
+$categories = [];
+while ($row = $result_categories->fetch_assoc()) {
+    $categories[] = $row;
 }
 ?>
 
@@ -350,6 +358,16 @@ while ($row = $result_images->fetch_assoc()) {
         <div class="mb-3">
             <label for="listing_description" class="form-label">Description <span class="text-danger">*</span></label>
             <textarea class="form-control" id="listing_description" name="listing_description" rows="4" required><?php echo htmlspecialchars($listing['listing_description']); ?></textarea>
+        </div>
+
+        <div class="mb-3">
+            <label for="category" class="form-label">Category</label>
+            <select class="form-select" id="category" name="category" disabled>
+                <?php foreach ($categories as $category): ?>
+                    <option value="<?php echo $category['id']; ?>" <?php if ($listing['category_id'] == $category['id']) echo 'selected'; ?>><?php echo htmlspecialchars($category['name']); ?></option>
+                <?php endforeach; ?>
+            </select>
+            <small class="form-text text-muted">Category cannot be changed. If you made a mistake, please delete the listing and start again.</small>
         </div>
         
         <div class="mb-3">
