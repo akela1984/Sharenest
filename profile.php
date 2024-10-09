@@ -25,7 +25,17 @@ if ($result->num_rows > 0) {
 $uploadDir = 'uploads/user_profile_img/';
 $profileUpdated = false;
 
+// Generate CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Check CSRF token
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        die("Invalid CSRF token");
+    }
+
     $newUsername = trim($_POST['username']);
     $newEmail = trim($_POST['email']);
 
@@ -93,20 +103,27 @@ $conn->close();
     <title>ShareNest - Profile</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <link href="css/styles.css" rel="stylesheet">
 </head>
 <body class="p-3 m-0 border-0 bd-example m-0 border-0">
 
 <!-- Navbar STARTS here -->
 <nav class="navbar navbar-expand-lg bg-body-tertiary">
     <div class="container-fluid">
-        <a class="navbar-brand" href="#">ShareNest</a>
+        <a class="navbar-brand" href="index.php">ShareNest</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
                 aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
             <ul class="navbar-nav mb-2 mb-lg-0">
+                <li class="nav-item spacer">
+                    <a class="btn btn-outline-success" href="my_nest.php">My Nest</a>
+                </li>
+                <li class="nav-item spacer">
+                    <a class="btn btn-outline-success" href="create_listing.php">Create Listing</a>
+                </li>
+                <li class="nav-item spacer"></li>
                 <?php if(isset($_SESSION['loggedin'])) { ?>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
@@ -118,6 +135,7 @@ $conn->close();
                         </a>
                         <ul class="dropdown-menu">
                             <li class="nav-item"><a class="nav-link" href="profile.php">My Profile</a></li>
+                            <li class="nav-item"><a class="nav-link" href="join_location.php">My Locations</a></li>
                             <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
                         </ul>
                     </li>
@@ -130,13 +148,16 @@ $conn->close();
         </div>
     </div>
 </nav>
+<!-- Navbar ENDS here -->
 
+<!-- Profile Form STARTS here -->
 <div class="container mt-5 d-flex justify-content-center">
     <div class="col-md-6 col-sm-8">
         <h2>Profile</h2>
-        <?php if (isset($error)) { echo "<div class='alert alert-danger' role='alert'>$error</div>"; } ?>
+        <?php if (isset($error)) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error) . "</div>"; } ?>
         <?php if (isset($_GET['success'])) { echo "<div class='alert alert-success' role='alert'>Profile updated successfully!</div>"; } ?>
         <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
             <div class="mb-3">
                 <label for="username" class="form-label">Username:</label>
                 <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" required readonly>
@@ -147,11 +168,9 @@ $conn->close();
             </div>
             <div class="mb-3">
                 <label for="profileImage" class="form-label">Profile Image:</label>
-                <?php if ($user['profile_image'])
-{
-    echo "<img src='" . htmlspecialchars($user['profile_image']) . "' alt='Profile Image' width='150' class='mb-3'>";
-}
-?>
+                <?php if ($user['profile_image']) {
+                    echo "<img src='" . htmlspecialchars($user['profile_image']) . "' alt='Profile Image' width='150' class='mb-3'>";
+                } ?>
                 <input type="file" class="form-control" id="profileImage" name="profileImage" accept="image/*" aria-describedby="imageHelp">
                 <div id="imageHelp" class="form-text">Accepted formats: JPG, JPEG, PNG, GIF</div>
             </div>
@@ -160,6 +179,27 @@ $conn->close();
         </form>
     </div>
 </div>
+<!-- Profile Form ENDS here -->
+
+<!-- Footer STARTS here -->
+<footer class="text-white py-4">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-6">
+                <h5>About Us</h5>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam ut tortor nisi. In hac habitasse platea dictumst.</p>
+            </div>
+            <div class="col-md-6">
+                <h5>Contact Us</h5>
+                <ul class="list-unstyled">
+                    <li>Email: info@yoursite.com</li>
+                    <li>Phone: +123-456-7890</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</footer>
+<!-- Footer ENDS here -->
 
 <!-- Bootstrap Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
