@@ -127,7 +127,7 @@ $conn->close();
 <?php include 'navbar.php'; ?>
 <!-- Navbar ENDS here -->
 
-<div class="container edit-listing-container">
+<div id="content" class="container edit-listing-container">
     <h2 class="edit-listing-title">Create Listing</h2>
 
     <?php if ($success_message): ?>
@@ -193,5 +193,8 @@ $conn->close();
     });
 </script>
     <button id="install-button" style="display: none;">Install Sharenest</button>
+    <!-- Footer STARTS here -->
+<?php include 'footer.php'; ?>
+<!-- Footer ENDS here -->
 </body>
 </html>

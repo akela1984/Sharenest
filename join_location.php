@@ -136,7 +136,7 @@ $conn->close();
 
 <!-- Join Location Form STARTS here -->
 
-<div class="container mt-5 location-container">
+<div id="content" class="container mt-5 location-container">
     <h2>Join Location</h2>
     <?php if (isset($error)) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error) . "</div>"; } ?>
     <div class="row">
@@ -169,7 +169,7 @@ $conn->close();
 <!-- Join Location Form ENDS here -->
 
 <!-- Footer STARTS here -->
-<?php // include 'footer.php'; ?>
+<?php include 'footer.php'; ?>
 <!-- Footer ENDS here -->
 
 <!-- Bootstrap Bundle with Popper -->

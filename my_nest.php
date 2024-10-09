@@ -281,7 +281,7 @@ $locationIdsStr = implode(',', $locationIds);
 
 <!-- My nest Listings STARTS here -->
 
-<div class="container mt-5">
+<div id="content" class="container">
     <h2>Available Listings</h2>
     <?php if (isset($_SESSION['message'])): ?>
         <div class="alert alert-info"><?php echo htmlspecialchars($_SESSION['message'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['message']); ?></div>
@@ -315,9 +315,8 @@ $locationIdsStr = implode(',', $locationIds);
 <!-- My nest Listings ENDS here -->
 
 <!-- Footer STARTS here -->
-<?php // include 'footer.php'; ?>
+<?php include 'footer.php'; ?>
 <!-- Footer ENDS here -->
-
 <!-- Bootstrap Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Include Leaflet JavaScript -->

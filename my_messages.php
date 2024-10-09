@@ -33,7 +33,7 @@ $user_id = $user['id'];
 
 // Fetch all conversations for the logged-in user
 $sql = "
-    SELECT c.id AS conversation_id, l.title AS listing_title, u.username AS other_user, m.sent_at, l.id AS listing_id, l.user_id AS listing_owner_id,
+    SELECT c.id AS conversation_id, l.title AS listing_title, l.listing_type, l.state, u.username AS other_user, m.sent_at, l.id AS listing_id, l.user_id AS listing_owner_id,
     (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id AND recipient_id = ? AND `read` = FALSE) AS unread_count
     FROM conversations c
     JOIN conversation_members cm1 ON c.id = cm1.conversation_id
@@ -52,6 +52,19 @@ $sql = "
     WHERE cm1.user_id = ? AND cm2.user_id != ?
     ORDER BY m.sent_at DESC
 ";
+$stmt = $conn->prepare($sql);
+if (!$stmt) {
+    die("Error preparing statement: " . $conn->error);
+}
+$stmt->bind_param("iii", $user_id, $user_id, $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+$conversations = [];
+while ($row = $result->fetch_assoc()) {
+    $conversations[] = $row;
+}
+
 $stmt = $conn->prepare($sql);
 if (!$stmt) {
     die("Error preparing statement: " . $conn->error);
@@ -84,6 +97,7 @@ $address = null;
 if ($result_address->num_rows > 0) {
     $address = $result_address->fetch_assoc();
 }
+
 ?>
 
 <!doctype html>
@@ -115,96 +129,7 @@ if ($result_address->num_rows > 0) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
     <link href="css/styles.css" rel="stylesheet">
-    <style>
-        .conversation-box {
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            background-color: #f9f9f9;
-            position: relative;
-        }
-        .conversation-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        .conversation-content {
-            display: flex;
-            flex-direction: column;
-        }
-        .conversation-footer {
-            margin-top: auto;
-            font-size: 0.9rem;
-            color: #888;
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-        }
-        .modal-dialog-scrollable {
-            max-height: 90vh;
-        }
-        .message-bubble {
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            max-width: 75%;
-        }
-        .message-bubble-left {
-            background-color: #e9ecef;
-            align-self: flex-start;
-        }
-        .message-bubble-right {
-            background-color: #5cb85c;
-            color: white;
-            align-self: flex-end;
-        }
-        .form-container {
-            width: 100%;
-        }
-        .suggestion-buttons {
-            margin-bottom: 10px;
-            display: flex;
-            justify-content: center;
-        }
-        .suggestion-button {
-            font-size: 0.8rem;
-            margin: 0 5px;
-        }
-        .badge-container {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-        }
-        .badge-container .badge {
-            margin-bottom: 5px;
-        }
-        .seen-status {
-            font-size: 0.8rem;
-            color: yellow;
-        }
-        .conversation-header .badge.unread-badge {
-            margin-right: 5px;
-        }
-        .map-links {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .map-link {
-            text-decoration: none;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .map-link svg {
-            width: 20px;
-            height: 20px;
-        }
-    </style>
+
 </head>
 <body class="p-3 m-0 border-0 bd-example m-0 border-0">
 
@@ -212,7 +137,7 @@ if ($result_address->num_rows > 0) {
 <?php include 'navbar.php'; ?>
 <!-- Navbar ENDS here -->
 
-<div class="container mt-5">
+<div id="content" class="container mt-5 d-flex">
     <h2>My Messages</h2>
     <?php if (isset($_SESSION['message'])): ?>
         <div class="alert alert-info"><?php echo $_SESSION['message']; unset($_SESSION['message']); ?></div>
@@ -224,24 +149,32 @@ if ($result_address->num_rows > 0) {
         </div>
     <?php else: ?>
         <?php foreach ($conversations as $conversation): ?>
-            <div class="conversation-box">
-                <div class="conversation-header">
-                    <div>
-                        <h5><?php echo htmlspecialchars($conversation['listing_title']); ?></h5>
-                        <p class="mb-0">With: <?php echo htmlspecialchars($conversation['other_user']); ?></p>
-                    </div>
-                    <div class="badge-container">
-                        <?php if ($conversation['unread_count'] > 0): ?>
-                            <span class="badge bg-danger unread-badge"><?php echo $conversation['unread_count']; ?> unread</span>
-                        <?php endif; ?>
-                        <span><?php echo date('d M Y, H:i', strtotime($conversation['sent_at'])); ?></span>
-                    </div>
-                </div>
-                <div class="conversation-footer">
-                    <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#conversationModal" data-conversation-id="<?php echo $conversation['conversation_id']; ?>" data-listing-id="<?php echo $conversation['listing_id']; ?>" data-listing-title="<?php echo htmlspecialchars($conversation['listing_title']); ?>" data-other-user="<?php echo htmlspecialchars($conversation['other_user']); ?>" data-listing-owner-id="<?php echo $conversation['listing_owner_id']; ?>">View Conversation</button>
-                </div>
+    <div class="conversation-box">
+        <div class="conversation-header">
+            <div>
+                <h5><?php echo htmlspecialchars($conversation['listing_title']); ?></h5>
+                <p class="mb-0">With: <?php echo htmlspecialchars($conversation['other_user']); ?></p>
             </div>
-        <?php endforeach; ?>
+            <div class="badge-container">
+                <?php if ($conversation['unread_count'] > 0): ?>
+                    <span class="badge bg-danger unread-badge"><?php echo $conversation['unread_count']; ?> unread</span>
+                <?php endif; ?>
+                <span><?php echo date('d M Y, H:i', strtotime($conversation['sent_at'])); ?></span>
+            </div>
+        </div>
+        <div class="conversation-footer">
+            <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#conversationModal" 
+                    data-conversation-id="<?php echo $conversation['conversation_id']; ?>" 
+                    data-listing-id="<?php echo $conversation['listing_id']; ?>" 
+                    data-listing-title="<?php echo htmlspecialchars($conversation['listing_title']); ?>" 
+                    data-other-user="<?php echo htmlspecialchars($conversation['other_user']); ?>" 
+                    data-listing-owner-id="<?php echo $conversation['listing_owner_id']; ?>"
+                    data-listing-type="<?php echo htmlspecialchars($conversation['listing_type']); ?>"
+                    data-listing-state="<?php echo htmlspecialchars($conversation['state']); ?>">View Conversation</button>
+        </div>
+    </div>
+<?php endforeach; ?>
+
     <?php endif; ?>
 </div>
 
@@ -294,6 +227,116 @@ if ($result_address->num_rows > 0) {
         }
     });
 
+});
+document.addEventListener('DOMContentLoaded', function() {
+    const conversationModal = document.getElementById('conversationModal');
+    const shareAddressButton = document.getElementById('shareAddressButton');
+    const markPendingButton = document.getElementById('markPendingButton');
+    const sendMessageButton = document.getElementById('sendMessageButton'); // Get the Send button element
+    const sendingAddressButton = document.getElementById('sendingAddressButton'); // Get the sending address button element
+    const sendingIndicator = document.getElementById('sendingIndicator'); // Get the sending indicator element
+
+    const makeAvailableButton = document.createElement('button'); // Create the new button
+    makeAvailableButton.type = 'button';
+    makeAvailableButton.className = 'btn btn-sm btn-outline-secondary suggestion-button';
+    makeAvailableButton.id = 'makeAvailableButton';
+    makeAvailableButton.style.display = 'none';
+    makeAvailableButton.innerText = 'Make it Available Again';
+    document.querySelector('.suggestion-buttons').appendChild(makeAvailableButton);
+
+    conversationModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const conversationId = button.getAttribute('data-conversation-id');
+        const listingId = button.getAttribute('data-listing-id');
+        const listingTitle = button.getAttribute('data-listing-title');
+        const otherUser = button.getAttribute('data-other-user');
+        const listingOwnerId = button.getAttribute('data-listing-owner-id');
+        const listingType = button.getAttribute('data-listing-type');
+        const listingState = button.getAttribute('data-listing-state');
+
+        console.log('conversationId:', conversationId);
+        console.log('listingId:', listingId);
+        console.log('listingTitle:', listingTitle);
+        console.log('otherUser:', otherUser);
+        console.log('listingOwnerId:', listingOwnerId);
+        console.log('listingType:', listingType);
+        console.log('listingState:', listingState);
+
+        // Set modal title
+        const modalTitle = conversationModal.querySelector('.modal-title');
+        modalTitle.textContent = `Conversation with ${otherUser} about ${listingTitle}`;
+
+        // Set hidden inputs
+        const conversationIdInput = document.getElementById('conversationId');
+        conversationIdInput.value = conversationId;
+
+        const listingIdInput = document.getElementById('listingId');
+        listingIdInput.value = listingId;
+
+        // Clear previous messages
+        const messagesContainer = document.getElementById('messagesContainer');
+        messagesContainer.innerHTML = '';
+
+        // Determine button visibility based on listing owner, listing type, and listing state
+        if (parseInt(listingOwnerId) === <?php echo $user_id; ?>) {
+            if (listingType === 'sharing') {
+                if (listingState === 'pending_collection') {
+                    markPendingButton.style.display = 'none';
+                    makeAvailableButton.style.display = 'inline-block';
+                } else {
+                    markPendingButton.style.display = 'inline-block';
+                    makeAvailableButton.style.display = 'none';
+                }
+                shareAddressButton.style.display = 'inline-block';
+            } else {
+                markPendingButton.style.display = 'none';
+                makeAvailableButton.style.display = 'none';
+                shareAddressButton.style.display = 'none';
+            }
+        } else {
+            markPendingButton.style.display = 'none';
+            makeAvailableButton.style.display = 'none';
+            if (listingType === 'wanted') {
+                shareAddressButton.style.display = 'inline-block';
+            } else {
+                shareAddressButton.style.display = 'none';
+            }
+        }
+
+        // Fetch and display the conversation messages
+        fetch(`fetch_messages.php?conversation_id=${conversationId}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Fetched messages:', data);
+                data.forEach(message => {
+                    const messageBubble = document.createElement('div');
+                    messageBubble.classList.add('message-bubble');
+                    messageBubble.innerHTML = message.message; // Use innerHTML to render HTML content
+
+                    if (message.sender_id === <?php echo $user_id; ?>) {
+                        messageBubble.classList.add('message-bubble-right');
+                        // Check if this is the last message sent by the user
+                        if (data[data.length - 1].id === message.id) {
+                            const seenStatus = document.createElement('div');
+                            seenStatus.classList.add('seen-status');
+                            seenStatus.textContent = message.read ? 'Seen' : 'Not seen yet';
+                            messageBubble.appendChild(seenStatus);
+                        }
+                    } else {
+                        messageBubble.classList.add('message-bubble-left');
+                    }
+
+                    messagesContainer.appendChild(messageBubble);
+                });
+
+                // Hide unread badge
+                button.closest('.conversation-box').querySelector('.unread-badge').style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error fetching messages:', error);
+            });
+    });
+
     markPendingButton.addEventListener('click', function() {
         const listingId = document.getElementById('listingId').value;
 
@@ -318,139 +361,38 @@ if ($result_address->num_rows > 0) {
             alert('Error marking as pending collection.');
         });
     });
-});
-document.addEventListener('DOMContentLoaded', function() {
-    const conversationModal = document.getElementById('conversationModal');
 
-    conversationModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const conversationId = button.getAttribute('data-conversation-id');
-        const listingId = button.getAttribute('data-listing-id');
-        const listingTitle = button.getAttribute('data-listing-title');
-        const otherUser = button.getAttribute('data-other-user');
-        const listingOwnerId = button.getAttribute('data-listing-owner-id');
+    makeAvailableButton.addEventListener('click', function() {
+        const listingId = document.getElementById('listingId').value;
 
-        const modalTitle = conversationModal.querySelector('.modal-title');
-        modalTitle.textContent = `Conversation with ${otherUser} about ${listingTitle}`;
-
-        const conversationIdInput = document.getElementById('conversationId');
-        conversationIdInput.value = conversationId;
-
-        const listingIdInput = document.getElementById('listingId');
-        listingIdInput.value = listingId;
-
-        const messagesContainer = document.getElementById('messagesContainer');
-        messagesContainer.innerHTML = '';
-
-        const shareAddressButton = document.getElementById('shareAddressButton');
-        if (parseInt(listingOwnerId) === <?php echo $user_id; ?>) {
-            shareAddressButton.style.display = 'inline-block';
-        } else {
-            shareAddressButton.style.display = 'none';
-        }
-
-        // Fetch and display the conversation messages
-        fetch(`fetch_messages.php?conversation_id=${conversationId}`)
-            .then(response => response.json())
-            .then(data => {
-                data.forEach(message => {
-                    const messageBubble = document.createElement('div');
-                    messageBubble.classList.add('message-bubble');
-                    messageBubble.innerHTML = message.message; // Use innerHTML to render HTML content
-
-                    if (message.sender_id === <?php echo $user_id; ?>) {
-                        messageBubble.classList.add('message-bubble-right');
-                        // Check if this is the last message sent by the user
-                        if (data[data.length - 1].id === message.id) {
-                            const seenStatus = document.createElement('div');
-                            seenStatus.classList.add('seen-status');
-                            seenStatus.textContent = message.read ? 'Seen' : 'Not seen yet';
-                            messageBubble.appendChild(seenStatus);
-                        }
-                    } else {
-                        messageBubble.classList.add('message-bubble-left');
-                    }
-
-                    messagesContainer.appendChild(messageBubble);
-                });
-
-                // Hide unread badge
-                button.closest('.conversation-box').querySelector('.unread-badge').style.display = 'none';
-            });
-    });
-
-    conversationModal.addEventListener('hidden.bs.modal', function() {
-        location.reload();
-    });
-
-    const sendMessageButton = document.getElementById('sendMessageButton');
-    const sendingIndicator = document.getElementById('sendingIndicator');
-    const messageText = document.getElementById('messageText');
-
-    sendMessageButton.addEventListener('click', function() {
-        if (messageText.value.trim().length < 2) {
-            alert('Message must be at least 2 characters long.');
-            return;
-        }
-
-        const messageTextValue = messageText.value;
-        const conversationId = document.getElementById('conversationId').value;
-
-        // Disable and hide the button and show sending indicator
-        sendMessageButton.style.display = 'none';
-        sendingIndicator.style.display = 'inline';
-
-        fetch('send_message.php', {
+        fetch('mark_available_again.php', { // Assume this is the endpoint to make it available again
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                conversation_id: conversationId,
-                message: messageTextValue
-            })
+            body: JSON.stringify({ listing_id: listingId })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const messagesContainer = document.getElementById('messagesContainer');
-                const messageBubble = document.createElement('div');
-                messageBubble.classList.add('message-bubble', 'message-bubble-right');
-                messageBubble.innerHTML = messageTextValue; // Use innerHTML to render HTML content
-
-                const seenStatus = document.createElement('div');
-                seenStatus.classList.add('seen-status');
-                seenStatus.textContent = 'Not seen yet';
-                messageBubble.appendChild(seenStatus);
-
-                messagesContainer.appendChild(messageBubble);
-                messageText.value = '';
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                alert('Listing is now available again.');
+                location.reload();
             } else {
-                alert('Error sending message: ' + data.error);
+                alert('Error making it available again: ' + data.error);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Error sending message.');
-        })
-        .finally(() => {
-            // Re-enable and show the button and hide sending indicator
-            sendMessageButton.style.display = 'inline';
-            sendingIndicator.style.display = 'none';
+            alert('Error making it available again.');
         });
     });
-
-    const shareAddressButton = document.getElementById('shareAddressButton');
-    const sendingAddressButton = document.getElementById('sendingAddressButton');
 
     shareAddressButton.addEventListener('click', function() {
         const hasAddress = <?php echo $address ? 'true' : 'false'; ?>;
         if (hasAddress) {
             if (confirm('Are you sure you want to send your address?')) {
                 const address = `<?php echo addslashes($address['address_line1']); ?>, <?php echo addslashes($address['address_line2']); ?>, <?php echo addslashes($address['town_city']); ?>, <?php echo addslashes($address['postcode']); ?>, <?php echo addslashes($address['country']); ?>`;
-                const addressMessage = `Address for pickup: 
-                ${address}
+                const addressMessage = `Address for pickup: ${address}
                 <div class="map-links">
                     <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}" class="map-link" target="_blank">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><!--!Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
@@ -475,7 +417,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function sendAddressMessage(messageText) {
         const conversationId = document.getElementById('conversationId').value;
 
-        // Disable and hide the button and show sending indicator
+        // Hide the button and show sending indicator
         shareAddressButton.style.display = 'none';
         sendingAddressButton.style.display = 'inline';
 
@@ -514,13 +456,77 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Error sending message.');
         })
         .finally(() => {
-            // Re-enable and show the button and hide sending indicator
+            // Show the button and hide sending indicator
             shareAddressButton.style.display = 'inline';
             sendingAddressButton.style.display = 'none';
         });
     }
+
+    // Event listener for the Send button
+    sendMessageButton.addEventListener('click', function() {
+        const conversationId = document.getElementById('conversationId').value;
+        const messageText = document.getElementById('messageText').value;
+
+        if (!messageText.trim()) {
+            alert('Please enter a message.');
+            return;
+        }
+
+        // Hide the Send button and show sending indicator
+        sendMessageButton.style.display = 'none';
+        sendingIndicator.style.display = 'inline';
+
+        fetch('send_message.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                conversation_id: conversationId,
+                message: messageText
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const messagesContainer = document.getElementById('messagesContainer');
+                const messageBubble = document.createElement('div');
+                messageBubble.classList.add('message-bubble', 'message-bubble-right');
+                messageBubble.innerHTML = messageText; // Use innerHTML to render HTML content
+
+                const seenStatus = document.createElement('div');
+                seenStatus.classList.add('seen-status');
+                seenStatus.textContent = 'Not seen yet';
+                messageBubble.appendChild(seenStatus);
+
+                messagesContainer.appendChild(messageBubble);
+                document.getElementById('messageText').value = '';
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } else {
+                alert('Error sending message: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error sending message.');
+        })
+        .finally(() => {
+            // Show the Send button and hide sending indicator
+            sendMessageButton.style.display = 'inline';
+            sendingIndicator.style.display = 'none';
+        });
+    });
 });
+
+
+
+
+
 </script>
+
+<!-- Footer STARTS here -->
+<?php include 'footer.php'; ?>
+<!-- Footer ENDS here -->
 
     <button id="install-button" style="display: none;">Install Sharenest</button>
 </body>

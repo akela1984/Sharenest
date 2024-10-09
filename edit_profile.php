@@ -131,7 +131,7 @@ $conn->close();
 <!-- Navbar ENDS here -->
 
 <!-- Profile Form STARTS here -->
-<div class="container mt-5 d-flex justify-content-center">
+<div id="content" class="container mt-5 d-flex justify-content-center">
     <div class="col-md-6 col-sm-8">
         <h2>Profile</h2>
         <?php if (isset($error)) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error) . "</div>"; } ?>
@@ -162,7 +162,7 @@ $conn->close();
 <!-- Profile Form ENDS here -->
 
 <!-- Footer STARTS here -->
-<?php // include 'footer.php'; ?>
+<?php include 'footer.php'; ?>
 <!-- Footer ENDS here -->
 
 <!-- Bootstrap Bundle with Popper -->

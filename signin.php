@@ -112,8 +112,8 @@ $conn->close();
 <!-- Navbar ENDS here -->
 
 <!-- Login Form STARTS here -->
-<div class="container mt-5 d-flex justify-content-center">
-    <div class="col-md-6 col-sm-8">
+<div id="content" class="container mt-5 d-flex align-items-center justify-content-center">
+    <div class="col-md-5 col-sm-8" >
         <h2>Login</h2>
         <?php if (isset($error)) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error) . "</div>"; } ?>
         <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
@@ -134,7 +134,7 @@ $conn->close();
 <!-- Login Form ENDS here -->
 
 <!-- Footer STARTS here -->
-<?php // include 'footer.php'; ?>
+<?php include 'footer.php'; ?>
 <!-- Footer ENDS here -->
 
 <!-- Bootstrap Bundle with Popper -->

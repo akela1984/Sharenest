@@ -266,7 +266,7 @@ $total_pages = ceil($total_listings / $limit);
 <?php include 'navbar.php'; ?>
 <!-- Navbar ENDS here -->
 
-<div class="container my-listings-container">
+<div id="content" class="container my-listings-container">
     <h2 class="my-listings-title">Dashboard</h2>
 
     <div class="row mb-4">
@@ -418,6 +418,10 @@ $total_pages = ceil($total_listings / $limit);
         <!-- Pagination ENDS here -->
     <?php endif; ?>
 </div>
+
+<!-- Footer STARTS here -->
+<?php include 'footer.php'; ?>
+<!-- Footer ENDS here -->
 
 <!-- Bootstrap Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

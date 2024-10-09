@@ -206,7 +206,7 @@ while ($row = $result_images->fetch_assoc()) {
 <?php include 'navbar.php'; ?>
 <!-- Navbar ENDS here -->
 
-<div class="container edit-listing-container">
+<div id="content" class="container edit-listing-container">
     <h2 class="edit-listing-title">Edit Listing</h2>
 
     <?php if ($success_message): ?>
@@ -318,5 +318,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
     <button id="install-button" style="display: none;">Install Sharenest</button>
+    
+    <!-- Footer STARTS here -->
+<?php include 'footer.php'; ?>
+<!-- Footer ENDS here -->
+
 </body>
 </html>

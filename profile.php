@@ -314,7 +314,7 @@ $conn->close();
 <!-- Navbar ENDS here -->
 
 <!-- Profile Form STARTS here -->
-<div class="container mt-5 d-flex justify-content-center">
+<div id="content" class="container mt-5 d-flex justify-content-center">
     <div class="col-md-6 col-sm-8">
         <h2>Profile</h2>
         <?php if (isset($error) && $error) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . "</div>"; } ?>
@@ -403,8 +403,8 @@ $conn->close();
 <!-- Profile Form ENDS here -->
 
 <!-- Footer STARTS here -->
-<?php // include 'footer.php'; ?>
-<!-- Footer ENDS here -->
+<?php include 'footer.php'; ?>
+<!-- Footer ENDS here -->>
 
 <!-- Bootstrap Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

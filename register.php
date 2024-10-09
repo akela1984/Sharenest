@@ -195,8 +195,8 @@ $conn->close();
 <!-- Navbar ENDS here -->
 
 <!-- Register Form STARTS here -->
-<div class="container mt-5 d-flex justify-content-center">
-    <div class="col-md-6 col-sm-8">
+<div id="content" class="container mt-5 d-flex align-items-center justify-content-center">
+    <div class="col-md-5 col-sm-8">
         <h2>Register</h2>
         <?php if (!empty($error)) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . "</div>"; } ?>
         <div id="errorMessage" class="alert alert-danger" style="display:none;"></div>
@@ -231,7 +231,7 @@ $conn->close();
 <!-- Register Form ENDS here -->
 
 <!-- Footer STARTS here -->
-<?php // include 'footer.php'; ?>
+<?php include 'footer.php'; ?>
 <!-- Footer ENDS here -->
 
 <!-- Bootstrap Bundle with Popper -->

@@ -289,7 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
 <?php include 'navbar.php'; ?>
 <!-- Navbar ENDS here -->
 
-<div class="container mt-5">
+<div id="content" class="container mt-5 d-flex">
     <h2>Admin Panel</h2>
     
     <?php if ($under_review_count > 0): ?>
@@ -544,6 +544,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
     </div>
 </div>
 
+<!-- Footer STARTS here -->
+<?php include 'footer.php'; ?>
+<!-- Footer ENDS here -->
+
 <!-- Bootstrap Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
@@ -631,6 +635,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+
 <button id="install-button" style="display: none;">Install Sharenest</button>
 </body>
 </html>
