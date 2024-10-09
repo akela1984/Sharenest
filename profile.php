@@ -46,7 +46,8 @@ if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+// Handle profile update
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['update_profile'])) {
     // Check CSRF token
     if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
         die("Invalid CSRF token");
@@ -156,14 +157,123 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
+// Load PHPMailer at the top of the file
+require 'phpmailer/src/Exception.php';
+require 'phpmailer/src/PHPMailer.php';
+require 'phpmailer/src/SMTP.php';
+
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+// Handle account deletion
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_account'])) {
+    // Check CSRF token
+    if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
+        die("Invalid CSRF token");
+    }
+
+    $currentPassword = trim($_POST['current_password_delete']);
+
+    if (empty($currentPassword)) {
+        $error = "Current password is required to delete account!";
+    } elseif (!password_verify($currentPassword, $user['password'])) {
+        $error = "Current password is incorrect!";
+    } else {
+        $email = $user['email'];
+        $username = $user['username'];
+        
+        // Delete user and address data
+        $sql = "DELETE FROM users WHERE id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("i", $user_id);
+        $stmt->execute();
+
+        $sql_address = "DELETE FROM users_address WHERE user_id = ?";
+        $stmt_address = $conn->prepare($sql_address);
+        $stmt_address->bind_param("i", $user_id);
+        $stmt_address->execute();
+
+        // Send email to user
+        $smtpUsername = $config['smtp']['username'];
+        $smtpPassword = $config['smtp']['password'];
+        
+        $mail = new PHPMailer(true);
+
+        try {
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.livemail.co.uk';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $smtpUsername;
+            $mail->Password   = $smtpPassword;
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = 587;
+
+            // Recipients
+            $mail->setFrom('no-reply@sharenest.org', 'Sharenest');
+            $mail->addAddress($email, $username);
+
+            // Load HTML template
+            $templatePath = __DIR__ . '/templates/delete_account_email_template.html';
+            if (!file_exists($templatePath)) {
+                throw new Exception("Email template not found at $templatePath");
+            }
+            $template = file_get_contents($templatePath);
+            $emailBody = str_replace(['{{username}}'], [htmlspecialchars($username, ENT_QUOTES, 'UTF-8')], $template);
+
+            // Content
+            $mail->isHTML(true);
+            $mail->Subject = 'Account Deletion Confirmation - Sharenest';
+            $mail->Body    = $emailBody;
+            $mail->CharSet = 'UTF-8';
+
+            // Embed the image
+            $logoPath = __DIR__ . '/img/sharenest_logo.png';
+            if (!file_exists($logoPath)) {
+                throw new Exception("Logo not found at $logoPath");
+            }
+            $mail->addEmbeddedImage($logoPath, 'sharenest_logo');
+
+            $mail->send();
+        } catch (Exception $e) {
+            error_log("Message could not be sent. Mailer Error: " . $mail->ErrorInfo);
+        }
+
+        session_destroy();
+        header('Location: index.php');
+        exit;
+    }
+}
+
 $conn->close();
 ?>
+
+
 
 <!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+       <!-- Web App Manifest -->
+       <link rel="manifest" href="/manifest.json">
+
+<!-- Theme Color -->
+<meta name="theme-color" content="#4CAF50">
+
+<!-- iOS-specific meta tags -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Sharenest">
+<link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
+<!-- Icons for various devices -->
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png">
+<link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+
+<!-- Link to External PWA Script -->
+<script src="/js/pwa.js" defer></script>
     <title>ShareNest - Profile</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -189,6 +299,7 @@ $conn->close();
         <?php if ($profileUpdated) { echo "<div class='alert alert-success' role='alert'>Profile updated successfully!</div>"; } ?>
         <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"], ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="update_profile" value="1">
             <div class="mb-3">
                 <label for="username" class="form-label">Username:</label>
                 <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8'); ?>" readonly>
@@ -252,6 +363,19 @@ $conn->close();
                 <button type="button" id="cancelButton" class="btn btn-outline-danger" style="display:none;">Cancel</button>
             </div>
         </form>
+        <hr>
+        <div class="mt-3">
+            <h3>Delete Account</h3>
+            <form id="deleteAccountForm" method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"], ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="delete_account" value="1">
+                <div class="mb-3">
+                    <label for="current_password_delete" class="form-label">Current Password:</label>
+                    <input type="password" class="form-control" id="current_password_delete" name="current_password_delete" required>
+                </div>
+                <button type="button" id="deleteAccountButton" class="btn btn-danger">Delete Account</button>
+            </form>
+        </div>
     </div>
 </div>
 <!-- Profile Form ENDS here -->
@@ -285,10 +409,17 @@ $conn->close();
         location.reload(); // Reload the page to reset the form fields and disable them
     });
 
+    document.getElementById('deleteAccountButton').addEventListener('click', function() {
+        if (confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+            document.getElementById('deleteAccountForm').submit();
+        }
+    });
+
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 </script>
+    <button id="install-button" style="display: none;">Install Sharenest</button>
 </body>
 </html>
