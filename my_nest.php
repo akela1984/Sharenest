@@ -71,7 +71,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
     $stmt->execute();
     $result = $stmt->get_result();
 
-
     if ($result->num_rows < 2) {
         $_SESSION['message'] = "You can't send a message to yourself!";
         header('Location: my_nest.php');
@@ -211,7 +210,6 @@ while ($row = $result->fetch_assoc()) {
 $locationIdsStr = implode(',', $locationIds);
 ?>
 
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -247,6 +245,32 @@ $locationIdsStr = implode(',', $locationIds);
   <link href="css/styles.css" rel="stylesheet">
   <!-- Include Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    .badge-under-review {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 5px;
+    }
+    
+    .badge-under-review-circle {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        background-color: orange;
+        border-radius: 50%;
+        color: black;
+        text-align: center;
+        line-height: 20px;
+        font-weight: bold;
+    }
+    
+    .badge-under-review-text {
+        margin-left: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        color: black;
+    }
+  </style>
 </head>
 
 <body class="p-3 m-0 border-0 bd-example m-0 border-0">
@@ -431,11 +455,19 @@ $locationIdsStr = implode(',', $locationIds);
                     categoryBadge.classList.add(listing.listing_type === 'sharing' ? 'badge-sharing' : 'badge-wanted');
                     categoryBadge.textContent = listing.listing_type === 'sharing' ? 'For Sharing' : 'Wanted';
 
+                    listingHeaderLeft.appendChild(categoryBadge);
+
+                    if (listing.state === 'under_review') {
+                        const underReviewBadge = document.createElement('span');
+                        underReviewBadge.classList.add('badge-under-review');
+                        underReviewBadge.innerHTML = '<span class="badge-under-review-circle">!</span><span class="badge-under-review-text">Under Review</span>';
+                        listingHeaderLeft.appendChild(underReviewBadge);
+                    }
+
                     const locationInfo = document.createElement('span');
                     locationInfo.textContent = `Location: ${decodeEntities(listing.location_name)}`;
                     locationInfo.style.marginTop = '5px';
 
-                    listingHeaderLeft.appendChild(categoryBadge);
                     listingHeaderLeft.appendChild(locationInfo);
 
                     const listingHeaderRight = document.createElement('div');
@@ -573,6 +605,7 @@ $locationIdsStr = implode(',', $locationIds);
                                             <input type="hidden" name="listing_id" value="${listing.id}">
                                             <button type="submit" class="btn btn-primary mt-2 d-none" id="send-message-${listing.id}">Send</button>
                                         </form>
+                                        <p class="text-danger mt-2" id="report-listing-${listing.id}" style="cursor: pointer;">Report this listing</p>
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -625,6 +658,8 @@ $locationIdsStr = implode(',', $locationIds);
                 } else {
                     document.getElementById('load-more').style.display = 'block';
                 }
+
+                attachReportEventListeners();
             })
             .catch(error => console.error('Error:', error));
     }
@@ -669,7 +704,7 @@ $locationIdsStr = implode(',', $locationIds);
     function handleRequest(button, listingId) {
         const sendButton = document.getElementById(`send-message-${listingId}`);
         const sendingText = document.getElementById(`sending-${listingId}`);
-        
+
         const textarea = document.querySelector(`#modal-${listingId} textarea[name="message"]`);
         if (textarea.value.trim().length < 2) {
             alert("Message must be at least 2 characters long.");
@@ -682,7 +717,7 @@ $locationIdsStr = implode(',', $locationIds);
         sendButton.click();
 
         // Listen for form submission completion
-        document.querySelector(`#modal-${listingId} form`).addEventListener('submit', function(event) {
+        document.querySelector(`#modal-${listingId} form`).addEventListener('submit', function (event) {
             event.preventDefault(); // Prevent form from submitting normally
 
             // Fetch the form data
@@ -700,7 +735,7 @@ $locationIdsStr = implode(',', $locationIds);
                 // Handle the response from the server (e.g., show a success message, close the modal, etc.)
                 console.log('Message sent:', data);
                 alert('Message sent successfully.');
-                const modalElement = document.getElementById(`modal-${listing.id}`);
+                const modalElement = document.getElementById(`modal-${listingId}`);
                 const modalInstance = bootstrap.Modal.getInstance(modalElement);
                 modalInstance.hide();
             })
@@ -713,6 +748,40 @@ $locationIdsStr = implode(',', $locationIds);
         });
     }
 
+    function reportListing(listingId) {
+        fetch('report_listing.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ listing_id: listingId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Listing has been reported and is now under review.');
+                // Optionally hide the listing or update its status in the UI
+            } else {
+                alert('Failed to report the listing. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error reporting the listing:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+
+    function attachReportEventListeners() {
+        document.querySelectorAll('[id^="report-listing-"]').forEach(reportLink => {
+            reportLink.addEventListener('click', function () {
+                const listingId = this.id.split('-')[2];
+                if (confirm('Do you really want to report this listing?')) {
+                    reportListing(listingId);
+                }
+            });
+        });
+    }
+
     function decodeEntities(encodedString) {
         const textArea = document.createElement('textarea');
         textArea.innerHTML = encodedString;
@@ -720,6 +789,6 @@ $locationIdsStr = implode(',', $locationIds);
     }
 </script>
 
-    <button id="install-button" style="display: none;">Install Sharenest</button>
+<button id="install-button" style="display: none;">Install Sharenest</button>
 </body>
 </html>

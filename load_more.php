@@ -36,7 +36,7 @@ $sql = "
     JOIN locations loc ON l.location_id = loc.location_id
     LEFT JOIN listing_images li ON l.id = li.listing_id
     LEFT JOIN users_address ua ON l.user_id = ua.user_id
-    WHERE l.location_id IN ($locationIdsPlaceholder) AND l.state IN ('available', 'pending_collection')
+    WHERE l.location_id IN ($locationIdsPlaceholder) AND l.state IN ('available', 'pending_collection', 'under_review')
 ";
 
 if ($filter === 'sharing') {
