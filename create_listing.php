@@ -39,47 +39,62 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $title = trim($_POST['title']);
     $location_id = intval($_POST['location_id']);
     $description = trim($_POST['description']);
-    $state = $_POST['state'];
+    $type = $_POST['listing_type'];
+
+    // Debugging: Output the captured values
+    echo "Title: $title, Location ID: $location_id, Description: $description, Type: $type<br>";
+
+    // Debugging: Show the SQL query
+    echo "SQL Query: INSERT INTO listings (title, location_id, description, type, state, user_id) VALUES (?, ?, ?, ?, 'available', ?)<br>";
 
     // Insert listing into database
-    $sql = "INSERT INTO listings (title, location_id, description, state, user_id) VALUES (?, ?, ?, 'available', ?)";
+    $sql = "INSERT INTO listings (title, location_id, description, type, state, user_id) VALUES (?, ?, ?, ?, 'available', ?)";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sisi", $title, $location_id, $description, $user['id']);
+    if (!$stmt) {
+        echo "Prepare failed: (" . $conn->errno . ") " . $conn->error;
+    } else {
+        // Debugging: Log the binding parameters
+        echo "Binding parameters: $title, $location_id, $description, $type, " . $user['id'] . "<br>";
+        $stmt->bind_param("sisii", $title, $location_id, $description, $type, $user['id']);
+        
+        // Debugging: Ensure the statement is executed
+        if ($stmt->execute()) {
+            echo "Statement executed successfully.<br>";
+            $listingId = $stmt->insert_id;
 
-    if ($stmt->execute()) {
-        $listingId = $stmt->insert_id;
+            // Handle image uploads
+            $imageUrls = array();
+            if (!empty($_FILES['images']['name'][0])) {
+                foreach ($_FILES['images']['name'] as $key => $imageName) {
+                    $imageTmpName = $_FILES['images']['tmp_name'][$key];
+                    $imageExtension = strtolower(pathinfo($imageName, PATHINFO_EXTENSION));
+                    $allowedFormats = array('jpg', 'jpeg', 'png', 'gif');
 
-        // Handle image uploads
-        $imageUrls = array();
-        if (!empty($_FILES['images']['name'][0])) {
-            foreach ($_FILES['images']['name'] as $key => $imageName) {
-                $imageTmpName = $_FILES['images']['tmp_name'][$key];
-                $imageExtension = strtolower(pathinfo($imageName, PATHINFO_EXTENSION));
-                $allowedFormats = array('jpg', 'jpeg', 'png', 'gif');
+                    if (in_array($imageExtension, $allowedFormats)) {
+                        // Generate a unique image name based on username, date, listing ID, and image number
+                        $newImageName = $user['username'] . '_' . date('YmdHis') . '_' . $listingId . '_' . $key . '.' . $imageExtension;
+                        $targetFilePath = $uploadDir . $newImageName;
 
-                if (in_array($imageExtension, $allowedFormats)) {
-                    // Generate a unique image name based on username, date, listing ID, and image number
-                    $newImageName = $user['username'] . '_' . date('YmdHis') . '_' . $listingId . '_' . $key . '.' . $imageExtension;
-                    $targetFilePath = $uploadDir . $newImageName;
-
-                    if (move_uploaded_file($imageTmpName, $targetFilePath)) {
-                        $imageUrls[] = $targetFilePath;
+                        if (move_uploaded_file($imageTmpName, $targetFilePath)) {
+                            $imageUrls[] = $targetFilePath;
+                        }
                     }
+                }
+
+                // Insert image URLs into listing_images table
+                foreach ($imageUrls as $imageUrl) {
+                    $sql = "INSERT INTO listing_images (listing_id, image_url) VALUES (?, ?)";
+                    $stmt = $conn->prepare($sql);
+                    $stmt->bind_param("is", $listingId, $imageUrl);
+                    $stmt->execute();
                 }
             }
 
-            // Insert image URLs into listing_images table
-            foreach ($imageUrls as $imageUrl) {
-                $sql = "INSERT INTO listing_images (listing_id, image_url) VALUES (?, ?)";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param("is", $listingId, $imageUrl);
-                $stmt->execute();
-            }
+            $listingCreated = true;
+        } else {
+            $error = "Failed to create listing!";
+            echo "Execute failed: (" . $stmt->errno . ") " . $stmt->error;
         }
-
-        $listingCreated = true;
-    } else {
-        $error = "Failed to create listing!";
     }
 }
 

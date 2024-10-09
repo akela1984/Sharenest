@@ -58,22 +58,54 @@ $locationIdsStr = implode(',', $locationIds);
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
+            background-color: #f9f9f9;
+            position: relative;
+        }
+        .listing-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .listing-header-left {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+        }
+        .listing-header-right {
             display: flex;
             align-items: center;
-            background-color: #f9f9f9;
+        }
+        .listing-content {
+            display: flex;
+            flex-direction: column;
+        }
+        @media (min-width: 576px) {
+            .listing-content {
+                flex-direction: row;
+            }
         }
         .listing-image {
-            width: 225px; /* 50% larger than original 150px */
+            width: 100%;
             height: auto;
             border-radius: 10px;
-            margin-right: 15px;
+            margin-bottom: 15px;
+        }
+        @media (min-width: 576px) {
+            .listing-image {
+                width: 225px;
+                margin-right: 15px;
+                margin-bottom: 0;
+            }
         }
         .listing-details {
+            display: flex;
+            flex-direction: column;
             flex: 1;
         }
         .listing-title {
             font-size: 1.5rem;
-            margin-top: 10px;
             font-weight: bold;
         }
         .listing-description {
@@ -85,14 +117,8 @@ $locationIdsStr = implode(',', $locationIds);
             font-size: 0.9rem;
             color: #888;
             display: flex;
-            flex-direction: column;
             justify-content: space-between;
-            align-items: flex-start;
-        }
-        .listing-footer .details-row {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
+            align-items: center;
         }
         .badge-sharing {
             background-color: #5cb85c;
@@ -118,6 +144,18 @@ $locationIdsStr = implode(',', $locationIds);
             background-color: #5cb85c;
             color: #fff;
             text-decoration: none;
+        }
+        .modal-footer .btn-request {
+            margin-left: auto;
+        }
+        .modal-title .badge {
+            margin-right: 10px; /* Add space between badge and title */
+        }
+        .filter-buttons {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: flex-start;
+            gap: 10px;
         }
     </style>
 </head>
@@ -173,6 +211,11 @@ $locationIdsStr = implode(',', $locationIds);
 
 <div class="container mt-5">
     <h2>Available Listings</h2>
+    <div class="filter-buttons">
+        <button id="filter-all" class="btn btn-outline-success">All</button>
+        <button id="filter-sharing" class="btn btn-outline-success">For Sharing</button>
+        <button id="filter-wanted" class="btn btn-outline-success">Wanted</button>
+    </div>
     <div id="listings-container">
         <!-- Listings will be loaded here -->
     </div>
@@ -207,6 +250,7 @@ $locationIdsStr = implode(',', $locationIds);
     let offset = 0;
     const limit = 20;
     const locationIdsStr = "<?php echo $locationIdsStr; ?>";
+    let currentFilter = 'all';
 
     function timeElapsedString(datetime) {
         const now = new Date();
@@ -233,14 +277,49 @@ $locationIdsStr = implode(',', $locationIds);
     }
 
     function loadListings() {
-        fetch(`load_more.php?offset=${offset}&limit=${limit}&locationIds=${locationIdsStr}`)
+        fetch(`load_more.php?offset=${offset}&limit=${limit}&locationIds=${locationIdsStr}&filter=${currentFilter}`)
             .then(response => response.json())
             .then(data => {
                 console.log(data); // Debugging line to check JSON structure
                 const listingsContainer = document.getElementById('listings-container');
+                if (offset === 0) {
+                    listingsContainer.innerHTML = ''; // Clear previous listings if loading from the beginning
+                }
                 data.forEach(listing => {
                     const listingBox = document.createElement('div');
                     listingBox.classList.add('listing-box');
+
+                    const listingHeader = document.createElement('div');
+                    listingHeader.classList.add('listing-header');
+
+                    const listingHeaderLeft = document.createElement('div');
+                    listingHeaderLeft.classList.add('listing-header-left');
+
+                    const categoryBadge = document.createElement('span');
+                    categoryBadge.classList.add('badge');
+                    categoryBadge.classList.add(listing.listing_type === 'sharing' ? 'badge-sharing' : 'badge-wanted');
+                    categoryBadge.textContent = listing.listing_type === 'sharing' ? 'For Sharing' : 'Wanted';
+
+                    const locationInfo = document.createElement('span');
+                    locationInfo.textContent = `Location: ${listing.location_name}`;
+                    locationInfo.style.marginTop = '5px';
+
+                    listingHeaderLeft.appendChild(categoryBadge);
+                    listingHeaderLeft.appendChild(locationInfo);
+
+                    const listingHeaderRight = document.createElement('div');
+                    listingHeaderRight.classList.add('listing-header-right');
+
+                    const timePosted = document.createElement('span');
+                    timePosted.textContent = `Posted ${timeElapsedString(listing.time_added)}`;
+
+                    listingHeaderRight.appendChild(timePosted);
+
+                    listingHeader.appendChild(listingHeaderLeft);
+                    listingHeader.appendChild(listingHeaderRight);
+
+                    const listingContent = document.createElement('div');
+                    listingContent.classList.add('listing-content');
 
                     const listingImage = document.createElement('img');
                     listingImage.src = listing.image_url;
@@ -261,28 +340,15 @@ $locationIdsStr = implode(',', $locationIds);
                     const listingFooter = document.createElement('div');
                     listingFooter.classList.add('listing-footer');
 
-                    const timePosted = document.createElement('span');
-                    timePosted.textContent = `Posted ${timeElapsedString(listing.time_added)}`;
-
-                    const locationInfo = document.createElement('span');
-                    locationInfo.textContent = `Location: ${listing.location_name}`;
-
                     const listingUser = document.createElement('span');
                     listingUser.textContent = `Listed by: ${listing.username}`;
 
-                    const categoryBadge = document.createElement('span');
-                    categoryBadge.classList.add('badge');
-                    categoryBadge.classList.add(listing.listing_type === 'sharing' ? 'badge-sharing' : 'badge-wanted');
-                    categoryBadge.textContent = listing.listing_type === 'sharing' ? 'For Sharing' : 'Wanted';
-
-                    const seeDetailsButton = document.createElement('a');
-                    seeDetailsButton.href = `listing_details.php?id=${listing.id}`;
+                    const seeDetailsButton = document.createElement('button');
                     seeDetailsButton.classList.add('btn', 'btn-outline-success');
                     seeDetailsButton.textContent = 'See details';
+                    seeDetailsButton.setAttribute('data-bs-toggle', 'modal');
+                    seeDetailsButton.setAttribute('data-bs-target', `#modal-${listing.id}`);
 
-                    listingFooter.appendChild(timePosted);
-                    listingFooter.appendChild(locationInfo);
-                    listingFooter.appendChild(categoryBadge);
                     listingFooter.appendChild(listingUser);
                     listingFooter.appendChild(seeDetailsButton);
 
@@ -290,12 +356,52 @@ $locationIdsStr = implode(',', $locationIds);
                     listingDetails.appendChild(listingDescription);
                     listingDetails.appendChild(listingFooter);
 
-                    if (listing.image_url) {
-                        listingBox.appendChild(listingImage);
-                    }
-                    listingBox.appendChild(listingDetails);
+                    listingContent.appendChild(listingImage);
+                    listingContent.appendChild(listingDetails);
+
+                    listingBox.appendChild(listingHeader);
+                    listingBox.appendChild(listingContent);
 
                     listingsContainer.appendChild(listingBox);
+
+                    // Create modal
+                    const modal = document.createElement('div');
+                    modal.classList.add('modal', 'fade');
+                    modal.id = `modal-${listing.id}`;
+                    modal.tabIndex = -1;
+                    modal.setAttribute('aria-labelledby', `modalLabel-${listing.id}`);
+                    modal.setAttribute('aria-hidden', 'true');
+
+                    const buttonText = listing.listing_type === 'wanted' ? 'Offer' : 'Request this';
+                    const badgeClass = listing.listing_type === 'sharing' ? 'badge-sharing' : 'badge-wanted';
+                    const badgeText = listing.listing_type === 'sharing' ? 'For Sharing' : 'Wanted';
+
+                    modal.innerHTML = `
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <span class="badge ${badgeClass}" style="margin-right: 10px;">${badgeText}</span>
+                                    <h5 class="modal-title" id="modalLabel-${listing.id}">
+                                        ${listing.title}
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <img src="${listing.image_url}" class="img-fluid mb-3" alt="Listing Image">
+                                    <p>${listing.description}</p>
+                                    <p><strong>Location:</strong> ${listing.location_name}</p>
+                                    <p><strong>Listed by:</strong> ${listing.username}</p>
+                                    <p><strong>Posted:</strong> ${timeElapsedString(listing.time_added)}</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-outline-success btn-request">${buttonText}</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    document.body.appendChild(modal);
                 });
 
                 offset += limit;
@@ -309,6 +415,25 @@ $locationIdsStr = implode(',', $locationIds);
     }
 
     document.getElementById('load-more').addEventListener('click', loadListings);
+
+    document.getElementById('filter-all').addEventListener('click', () => {
+        offset = 0;
+        currentFilter = 'all';
+        loadListings();
+    });
+
+    document.getElementById('filter-sharing').addEventListener('click', () => {
+        offset = 0;
+        currentFilter = 'sharing';
+        loadListings();
+    });
+
+    document.getElementById('filter-wanted').addEventListener('click', () => {
+        offset = 0;
+        currentFilter = 'wanted';
+        loadListings();
+    });
+
     loadListings(); // Initial load
 </script>
 </body>
