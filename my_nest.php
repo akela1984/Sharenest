@@ -215,214 +215,40 @@ $locationIdsStr = implode(',', $locationIds);
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">   <!-- Web App Manifest -->
-    <link rel="manifest" href="/manifest.json">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ShareNest: Share unwanted items. Reduce waste. Live green.</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#4CAF50">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Sharenest">
+  <link rel="apple-touch-icon" href="/img/favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/img/favicon.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="/img/favicon.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="/img/favicon.png">
+  <link rel="icon" href="/img/favicon.png" type="image/png">
+  <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
+  <script src="/js/pwa.js" defer></script>
 
-    <!-- Theme Color -->
-    <meta name="theme-color" content="#4CAF50">
+  <meta name="description" content="ShareNest is an online community to share unwanted items and reduce waste. Find a new home for your pre-loved goods and promote sustainable living in Scotland.">
+  <meta name="keywords" content="share unwanted items, reduce waste, reuse, recycle, green living, sustainability, online community, Scotland, Edinburgh, Lothians">
 
-    <!-- iOS-specific meta tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Sharenest">
-    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+  <meta property="og:url" content="https://www.sharenest.com/">  
+  <meta property="og:title" content="ShareNest: Share unwanted items. Reduce waste. Live green.">
+  <meta property="og:description" content="ShareNest is an online community to share unwanted items and reduce waste. Find a new home for your pre-loved goods and promote sustainable living in Scotland.">
+  <meta property="og:image" content="https://www.sharenest.com/img/sharenest_logo.png">  
+  <meta property="og:type" content="website">
 
-    <!-- Icons for various devices -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
-    <!-- Link to External PWA Script -->
-    <script src="/js/pwa.js" defer></script>
-    <title>ShareNest - My Nest</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
-    <link href="css/styles.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <style>
-        .listing-box {
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            background-color: #f9f9f9;
-            position: relative;
-        }
-        .listing-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        .listing-header-left {
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 10px;
-        }
-        .listing-header-right {
-            display: flex;
-            align-items: center;
-        }
-        .listing-content {
-            display: flex;
-            flex-direction: column;
-        }
-        @media (min-width: 576px) {
-            .listing-content {
-                flex-direction: row;
-            }
-        }
-        .listing-image {
-            width: 100%;
-            max-width: 225px;
-            height: auto;
-            max-height: 150px;
-            object-fit: cover;
-            border-radius: 10px;
-            margin-bottom: 15px;
-        }
-        @media (min-width: 576px) {
-            .listing-image {
-                margin-right: 15px;
-                margin-bottom: 0;
-            }
-        }
-        .listing-details {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-        }
-        .listing-title {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-        .listing-description {
-            margin-top: 10px;
-            color: #555;
-        }
-        .listing-footer {
-            margin-top: auto;
-            font-size: 0.9rem;
-            color: #888;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .badge-sharing {
-            background-color: #5cb85c;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-        }
-        .badge-wanted {
-            background-color: #d9534f;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-        }
-        .modal-footer .btn-request {
-            margin-left: auto;
-        }
-        .modal-title .badge {
-            margin-right: 10px;
-        }
-        .filter-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .filter-search {
-            position: relative;
-            flex-grow: 1;
-        }
-        @media (max-width: 576px) {
-            .filter-buttons {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .filter-search {
-                width: 100%;
-                margin-top: 10px;
-            }
-        }
-        .carousel-item img {
-            width: 100%;
-            max-width: 100%;
-            height: auto;
-            max-height: 400px;
-            object-fit: contain;
-            margin: 0 auto;
-        }
-        .carousel-indicators {
-            bottom: -40px;
-        }
-        .carousel-control-prev,
-        .carousel-control-next {
-            filter: invert(100%);
-        }
-        #map {
-            height: 400px;
-        }
-        .btn-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-        }
-        .search-suggestions {
-            position: absolute;
-            z-index: 1000;
-            background-color: white;
-            border: 1px solid #ddd;
-            border-radius: 0 0 5px 5px;
-            width: 100%;
-            max-height: 200px;
-            overflow-y: auto;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            display: none;
-        }
-        .search-suggestions-header {
-            padding: 10px;
-            font-weight: bold;
-            border-bottom: 1px solid #ddd;
-        }
-        .search-suggestion {
-            padding: 10px;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-        }
-        .search-suggestion img {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 5px;
-            margin-right: 10px;
-        }
-        .search-suggestion:hover {
-            background-color: #f0f0f0;
-        }
-        .badge-suggestion-sharing {
-            background-color: #5cb85c;
-            color: white;
-            padding: 2px 5px;
-            border-radius: 3px;
-            margin-left: auto;
-        }
-        .badge-suggestion-wanted {
-            background-color: #d9534f;
-            color: white;
-            padding: 2px 5px;
-            border-radius: 3px;
-            margin-left: auto;
-        }
-    </style>
+  <link href="css/styles.css" rel="stylesheet">
+  <!-- Include Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
+
 <body class="p-3 m-0 border-0 bd-example m-0 border-0">
 
 <!-- Navbar STARTS here -->
@@ -470,6 +296,8 @@ $locationIdsStr = implode(',', $locationIds);
 
 <!-- Bootstrap Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Include Leaflet JavaScript -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
     let offset = 0;
     const limit = 20;
@@ -588,6 +416,9 @@ $locationIdsStr = implode(',', $locationIds);
                 data.forEach(listing => {
                     const listingBox = document.createElement('div');
                     listingBox.classList.add('listing-box');
+                    if (listing.state === 'pending_collection') {
+                        listingBox.classList.add('pending-collection');
+                    }
 
                     const listingHeader = document.createElement('div');
                     listingHeader.classList.add('listing-header');
@@ -648,6 +479,9 @@ $locationIdsStr = implode(',', $locationIds);
                     seeDetailsButton.textContent = 'See details';
                     seeDetailsButton.setAttribute('data-bs-toggle', 'modal');
                     seeDetailsButton.setAttribute('data-bs-target', `#modal-${listing.id}`);
+                    if (listing.state === 'pending_collection') {
+                        seeDetailsButton.style.display = 'none'; // Ensure the button is hidden if state is pending_collection
+                    }
 
                     listingFooter.appendChild(listingUser);
                     listingFooter.appendChild(seeDetailsButton);
@@ -663,6 +497,13 @@ $locationIdsStr = implode(',', $locationIds);
                     listingBox.appendChild(listingFooter);
 
                     listingsContainer.appendChild(listingBox);
+
+                    if (listing.state === 'pending_collection') {
+                        const watermark = document.createElement('div');
+                        watermark.classList.add('watermark');
+                        watermark.textContent = 'Pending Collection';
+                        listingBox.appendChild(watermark);
+                    }
 
                     // Create modal
                     const modal = document.createElement('div');

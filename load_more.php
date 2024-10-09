@@ -1,4 +1,5 @@
 <?php
+// load_more.php
 include 'session_timeout.php';
 
 // Redirect non-logged-in users to the sign-in page
@@ -25,7 +26,7 @@ $locationIdsPlaceholder = implode(',', array_fill(0, count($locationIdsArray), '
 
 $sql = "
     SELECT 
-        l.id, l.title, l.listing_description, l.time_added, l.listing_type, 
+        l.id, l.title, l.listing_description, l.time_added, l.listing_type, l.state, 
         GROUP_CONCAT(li.image_url) as images,
         u.username,
         loc.location_name,
@@ -83,10 +84,12 @@ while ($row = $result->fetch_assoc()) {
         'location_name' => $row['location_name'],
         'listing_type' => $row['listing_type'],
         'badge_class' => $badgeClass,
-        'postcode' => $row['postcode']
+        'postcode' => $row['postcode'],
+        'state' => $row['state'] // Include the state in the response
     ];
     $listings[] = $listing;
 }
 
 echo json_encode($listings);
+
 ?>
