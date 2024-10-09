@@ -29,6 +29,27 @@ function fetch_user_address($conn, $user_id) {
     return $result->fetch_assoc();
 }
 
+// Function to delete images from the filesystem
+function delete_listing_images($conn, $user_id) {
+    // Fetch all listing images URLs for the user
+    $sql = "SELECT listing_images.image_url 
+            FROM listing_images 
+            JOIN listings ON listing_images.listing_id = listings.id 
+            WHERE listings.user_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    // Delete each image from the filesystem
+    while ($row = $result->fetch_assoc()) {
+        $image_path = 'uploads/listing_images/' . $row['image_url'];
+        if (file_exists($image_path)) {
+            unlink($image_path);
+        }
+    }
+}
+
 $username = $_SESSION['username'];
 $user = fetch_user_data($conn, $username);
 $user_id = $user['id'];
@@ -181,7 +202,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_account'])) {
     } else {
         $email = $user['email'];
         $username = $user['username'];
-        
+
+        // Delete images associated with the user's listings
+        delete_listing_images($conn, $user_id);
+
         // Delete user and address data
         $sql = "DELETE FROM users WHERE id = ?";
         $stmt = $conn->prepare($sql);
@@ -196,7 +220,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_account'])) {
         // Send email to user
         $smtpUsername = $config['smtp']['username'];
         $smtpPassword = $config['smtp']['password'];
-        
+
         $mail = new PHPMailer(true);
 
         try {
@@ -247,8 +271,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['delete_account'])) {
 
 $conn->close();
 ?>
-
-
 
 <!doctype html>
 <html lang="en">

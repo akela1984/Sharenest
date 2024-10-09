@@ -21,6 +21,27 @@ function fetch_total_count($conn, $table) {
     return $conn->query($sql)->fetch_assoc()['count'];
 }
 
+// Function to delete images from the filesystem
+function delete_listing_images($conn, $user_id) {
+    // Fetch all listing images URLs for the user
+    $sql = "SELECT listing_images.image_url 
+            FROM listing_images 
+            JOIN listings ON listing_images.listing_id = listings.id 
+            WHERE listings.user_id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    // Delete each image from the filesystem
+    while ($row = $result->fetch_assoc()) {
+        $image_path = $row['image_url'];
+        if (file_exists($image_path)) {
+            unlink($image_path);
+        }
+    }
+}
+
 // Pagination and sorting for Users table
 $users_page = isset($_GET['users_page']) ? (int)$_GET['users_page'] : 1;
 $users_perPage = 10;
@@ -64,6 +85,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_user'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
     $user_id = $_POST['user_id'];
 
+    // Delete images associated with the user's listings
+    delete_listing_images($conn, $user_id);
+
+    // Delete user and cascading deletes will handle the rest
     $sql = "DELETE FROM users WHERE id=?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $user_id);

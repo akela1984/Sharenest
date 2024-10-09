@@ -259,18 +259,19 @@ if ($result_address->num_rows > 0) {
                 </div>
             </div>
             <div class="modal-footer">
-                <form id="sendMessageForm" class="form-container">
-                    <div class="suggestion-buttons">
-                        <button type="button" class="btn btn-sm btn-outline-secondary suggestion-button" id="shareAddressButton" style="display: none;">Share my address</button>
-                    </div>
-                    <textarea name="message" class="form-control mt-3" id="messageText" placeholder="Type your message here..." required></textarea>
-                    <input type="hidden" id="conversationId" name="conversation_id">
-                    <input type="hidden" id="listingId" name="listing_id">
-                </form>
-                <button type="button" class="btn btn-outline-success" id="sendMessageButton">Send</button>
-                <button type="button" class="btn btn-outline-success d-none" id="sendingAddressButton">Sending my address...</button>
-                <div id="sendingIndicator" class="text-success" style="display: none; margin-left: 10px;">Sending...</div>
-            </div>
+    <form id="sendMessageForm" class="form-container">
+        <div class="suggestion-buttons">
+            <button type="button" class="btn btn-sm btn-outline-secondary suggestion-button" id="shareAddressButton" style="display: none;">Share my address</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary suggestion-button" id="markPendingButton" style="display: none;">Mark as Pending Collection</button>
+        </div>
+        <textarea name="message" class="form-control mt-3" id="messageText" placeholder="Type your message here..." required></textarea>
+        <input type="hidden" id="conversationId" name="conversation_id">
+        <input type="hidden" id="listingId" name="listing_id">
+    </form>
+    <button type="button" class="btn btn-outline-success" id="sendMessageButton">Send</button>
+    <button type="button" class="btn btn-outline-success d-none" id="sendingAddressButton">Sending my address...</button>
+    <div id="sendingIndicator" class="text-success" style="display: none; margin-left: 10px;">Sending...</div>
+</div>
         </div>
     </div>
 </div>
@@ -278,6 +279,46 @@ if ($result_address->num_rows > 0) {
 <!-- Bootstrap Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+    const markPendingButton = document.getElementById('markPendingButton');
+
+    conversationModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const listingOwnerId = button.getAttribute('data-listing-owner-id');
+        
+        // Show the "Mark as Pending Collection" button only if the logged-in user is the listing owner
+        if (parseInt(listingOwnerId) === <?php echo $user_id; ?>) {
+            markPendingButton.style.display = 'inline-block';
+        } else {
+            markPendingButton.style.display = 'none';
+        }
+    });
+
+    markPendingButton.addEventListener('click', function() {
+        const listingId = document.getElementById('listingId').value;
+
+        fetch('mark_pending_collection.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ listing_id: listingId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Listing marked as pending collection.');
+                location.reload();
+            } else {
+                alert('Error marking as pending collection: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error marking as pending collection.');
+        });
+    });
+});
 document.addEventListener('DOMContentLoaded', function() {
     const conversationModal = document.getElementById('conversationModal');
 

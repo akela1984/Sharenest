@@ -71,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
     $stmt->execute();
     $result = $stmt->get_result();
 
+
     if ($result->num_rows < 2) {
         $_SESSION['message'] = "You can't send a message to yourself!";
         header('Location: my_nest.php');
