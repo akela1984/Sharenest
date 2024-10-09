@@ -60,10 +60,10 @@ $locationIdsStr = implode(',', $locationIds);
             margin-bottom: 20px;
             display: flex;
             align-items: center;
-            background-color: #f9f9f9; /* Optional: for better visibility */
+            background-color: #f9f9f9;
         }
         .listing-image {
-            width: 150px;
+            width: 225px; /* 50% larger than original 150px */
             height: auto;
             border-radius: 10px;
             margin-right: 15px;
@@ -74,30 +74,48 @@ $locationIdsStr = implode(',', $locationIds);
         .listing-title {
             font-size: 1.5rem;
             margin-top: 10px;
-            font-weight: bold; /* Optional: for emphasis */
+            font-weight: bold;
         }
         .listing-description {
             margin-top: 10px;
-            color: #555; /* Optional: for better readability */
+            color: #555;
         }
         .listing-footer {
             margin-top: 10px;
             font-size: 0.9rem;
             color: #888;
             display: flex;
+            flex-direction: column;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
         }
-        .btn-outline-primary {
-            border: 1px solid #007bff;
-            color: #007bff;
+        .listing-footer .details-row {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .badge-sharing {
+            background-color: #5cb85c;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        .badge-wanted {
+            background-color: #d9534f;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        .btn-outline-success {
+            border: 1px solid #5cb85c;
+            color: #5cb85c;
             background-color: transparent;
             padding: 5px 10px;
             border-radius: 5px;
             text-decoration: none;
         }
-        .btn-outline-primary:hover {
-            background-color: #007bff;
+        .btn-outline-success:hover {
+            background-color: #5cb85c;
             color: #fff;
             text-decoration: none;
         }
@@ -153,17 +171,17 @@ $locationIdsStr = implode(',', $locationIds);
 
 <!-- My nest Listings STARTS here -->
 
-    <div class="container mt-5">
-        <h2>Available Listings</h2>
-        <div id="listings-container">
-            <!-- Listings will be loaded here -->
-        </div>
-        <button id="load-more" class="btn btn-outline-success" style="display: none;">Show more</button>
+<div class="container mt-5">
+    <h2>Available Listings</h2>
+    <div id="listings-container">
+        <!-- Listings will be loaded here -->
     </div>
+    <button id="load-more" class="btn btn-outline-success" style="display: none;">Show more</button>
+</div>
 
 <!-- My nest Listings ENDS here -->
 
-    <!-- Footer STARTS here -->
+<!-- Footer STARTS here -->
 <footer class="text-white py-4">
     <div class="container">
         <div class="row">
@@ -183,100 +201,115 @@ $locationIdsStr = implode(',', $locationIds);
 </footer>
 <!-- Footer ENDS here -->
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        let offset = 0;
-        const limit = 20;
-        const locationIdsStr = "<?php echo $locationIdsStr; ?>";
+<!-- Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let offset = 0;
+    const limit = 20;
+    const locationIdsStr = "<?php echo $locationIdsStr; ?>";
 
-        function timeElapsedString(datetime) {
-            const now = new Date();
-            const past = new Date(datetime);
-            const diff = now - past;
+    function timeElapsedString(datetime) {
+        const now = new Date();
+        const past = new Date(datetime);
+        const diff = now - past;
 
-            const units = [
-                { label: 'year', value: 1000 * 60 * 60 * 24 * 365 },
-                { label: 'month', value: 1000 * 60 * 60 * 24 * 30 },
-                { label: 'week', value: 1000 * 60 * 60 * 24 * 7 },
-                { label: 'day', value: 1000 * 60 * 60 * 24 },
-                { label: 'hour', value: 1000 * 60 * 60 },
-                { label: 'minute', value: 1000 * 60 },
-                { label: 'second', value: 1000 },
-            ];
+        const units = [
+            { label: 'year', value: 1000 * 60 * 60 * 24 * 365 },
+            { label: 'month', value: 1000 * 60 * 60 * 24 * 30 },
+            { label: 'week', value: 1000 * 60 * 60 * 24 * 7 },
+            { label: 'day', value: 1000 * 60 * 60 * 24 },
+            { label: 'hour', value: 1000 * 60 * 60 },
+            { label: 'minute', value: 1000 * 60 },
+            { label: 'second', value: 1000 },
+        ];
 
-            for (const unit of units) {
-                const elapsed = Math.floor(diff / unit.value);
-                if (elapsed > 0) {
-                    return `${elapsed} ${unit.label}${elapsed > 1 ? 's' : ''} ago`;
-                }
+        for (const unit of units) {
+            const elapsed = Math.floor(diff / unit.value);
+            if (elapsed > 0) {
+                return `${elapsed} ${unit.label}${elapsed > 1 ? 's' : ''} ago`;
             }
-            return 'just now';
         }
+        return 'just now';
+    }
 
-        function loadListings() {
-            fetch(`load_more.php?offset=${offset}&limit=${limit}&locationIds=${locationIdsStr}`)
-                .then(response => response.json())
-                .then(data => {
-                    const listingsContainer = document.getElementById('listings-container');
-                    data.forEach(listing => {
-                        const listingBox = document.createElement('div');
-                        listingBox.classList.add('listing-box');
+    function loadListings() {
+        fetch(`load_more.php?offset=${offset}&limit=${limit}&locationIds=${locationIdsStr}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log(data); // Debugging line to check JSON structure
+                const listingsContainer = document.getElementById('listings-container');
+                data.forEach(listing => {
+                    const listingBox = document.createElement('div');
+                    listingBox.classList.add('listing-box');
 
-                        const listingImage = document.createElement('img');
-                        listingImage.src = listing.image_url;
-                        listingImage.alt = 'Listing Image';
-                        listingImage.classList.add('listing-image');
+                    const listingImage = document.createElement('img');
+                    listingImage.src = listing.image_url;
+                    listingImage.alt = 'Listing Image';
+                    listingImage.classList.add('listing-image');
 
-                        const listingDetails = document.createElement('div');
-                        listingDetails.classList.add('listing-details');
+                    const listingDetails = document.createElement('div');
+                    listingDetails.classList.add('listing-details');
 
-                        const listingTitle = document.createElement('div');
-                        listingTitle.classList.add('listing-title');
-                        listingTitle.textContent = listing.title;
+                    const listingTitle = document.createElement('div');
+                    listingTitle.classList.add('listing-title');
+                    listingTitle.textContent = listing.title;
 
-                        const listingDescription = document.createElement('div');
-                        listingDescription.classList.add('listing-description');
-                        listingDescription.textContent = `${listing.description.substring(0, 200)}...`;
+                    const listingDescription = document.createElement('div');
+                    listingDescription.classList.add('listing-description');
+                    listingDescription.textContent = `${listing.description.substring(0, 200)}...`;
 
-                        const listingFooter = document.createElement('div');
-                        listingFooter.classList.add('listing-footer');
+                    const listingFooter = document.createElement('div');
+                    listingFooter.classList.add('listing-footer');
 
-                        const timePosted = document.createElement('span');
-                        timePosted.textContent = `Posted ${timeElapsedString(listing.time_added)}`;
+                    const timePosted = document.createElement('span');
+                    timePosted.textContent = `Posted ${timeElapsedString(listing.time_added)}`;
 
-                        const seeDetailsButton = document.createElement('a');
-                        seeDetailsButton.href = `listing_details.php?id=${listing.id}`;
-                        seeDetailsButton.classList.add('btn', 'btn-outline-success');
-                        seeDetailsButton.textContent = 'See details';
+                    const locationInfo = document.createElement('span');
+                    locationInfo.textContent = `Location: ${listing.location_name}`;
 
-                        listingFooter.appendChild(timePosted);
-                        listingFooter.appendChild(seeDetailsButton);
+                    const listingUser = document.createElement('span');
+                    listingUser.textContent = `Listed by: ${listing.username}`;
 
-                        listingDetails.appendChild(listingTitle);
-                        listingDetails.appendChild(listingDescription);
-                        listingDetails.appendChild(listingFooter);
+                    const categoryBadge = document.createElement('span');
+                    categoryBadge.classList.add('badge');
+                    categoryBadge.classList.add(listing.listing_type === 'sharing' ? 'badge-sharing' : 'badge-wanted');
+                    categoryBadge.textContent = listing.listing_type === 'sharing' ? 'For Sharing' : 'Wanted';
 
-                        if (listing.image_url) {
-                            listingBox.appendChild(listingImage);
-                        }
-                        listingBox.appendChild(listingDetails);
+                    const seeDetailsButton = document.createElement('a');
+                    seeDetailsButton.href = `listing_details.php?id=${listing.id}`;
+                    seeDetailsButton.classList.add('btn', 'btn-outline-success');
+                    seeDetailsButton.textContent = 'See details';
 
-                        listingsContainer.appendChild(listingBox);
-                    });
+                    listingFooter.appendChild(timePosted);
+                    listingFooter.appendChild(locationInfo);
+                    listingFooter.appendChild(categoryBadge);
+                    listingFooter.appendChild(listingUser);
+                    listingFooter.appendChild(seeDetailsButton);
 
-                    offset += limit;
-                    if (data.length < limit) {
-                        document.getElementById('load-more').style.display = 'none';
-                    } else {
-                        document.getElementById('load-more').style.display = 'block';
+                    listingDetails.appendChild(listingTitle);
+                    listingDetails.appendChild(listingDescription);
+                    listingDetails.appendChild(listingFooter);
+
+                    if (listing.image_url) {
+                        listingBox.appendChild(listingImage);
                     }
-                })
-                .catch(error => console.error('Error:', error));
-        }
+                    listingBox.appendChild(listingDetails);
 
-        document.getElementById('load-more').addEventListener('click', loadListings);
-        loadListings(); // Initial load
-    </script>
+                    listingsContainer.appendChild(listingBox);
+                });
+
+                offset += limit;
+                if (data.length < limit) {
+                    document.getElementById('load-more').style.display = 'none';
+                } else {
+                    document.getElementById('load-more').style.display = 'block';
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+    document.getElementById('load-more').addEventListener('click', loadListings);
+    loadListings(); // Initial load
+</script>
 </body>
 </html>
