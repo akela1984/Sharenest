@@ -1,0 +1,2 @@
+[27-Jun-2024 17:53:54 UTC] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in /Users/attilagajdos/Sites/localhost/ShareNest/navbar.php on line 2
+[27-Jun-2024 17:54:10 UTC] PHP Notice:  session_start(): Ignoring session_start() because a session is already active in /Users/attilagajdos/Sites/localhost/ShareNest/navbar.php on line 2

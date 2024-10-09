@@ -9,15 +9,30 @@ if (!isset($_SESSION['loggedin']) || !$_SESSION['loggedin'] || $_SESSION['is_adm
 
 include 'connection.php'; // Include the connection to your database
 
+
 // Function to fetch data for tables with pagination and sorting
 function fetch_data($conn, $table, $page, $perPage, $sortColumn, $sortOrder) {
     $offset = ($page - 1) * $perPage;
-    $sql = "SELECT * FROM $table ORDER BY $sortColumn $sortOrder LIMIT $offset, $perPage";
+    if ($table === 'listings') {
+        $sql = "SELECT listings.*, locations.location_name, users.username 
+                FROM listings 
+                JOIN locations ON listings.location_id = locations.location_id 
+                JOIN users ON listings.user_id = users.id 
+                ORDER BY $sortColumn $sortOrder 
+                LIMIT $offset, $perPage";
+    } else {
+        $sql = "SELECT * FROM $table ORDER BY $sortColumn $sortOrder LIMIT $offset, $perPage";
+    }
     return $conn->query($sql)->fetch_all(MYSQLI_ASSOC);
 }
 
 function fetch_total_count($conn, $table) {
     $sql = "SELECT COUNT(*) as count FROM $table";
+    return $conn->query($sql)->fetch_assoc()['count'];
+}
+
+function fetch_under_review_count($conn) {
+    $sql = "SELECT COUNT(*) as count FROM listings WHERE state = 'under_review'";
     return $conn->query($sql)->fetch_assoc()['count'];
 }
 
@@ -62,6 +77,9 @@ $listings = fetch_data($conn, 'listings', $listings_page, $listings_perPage, $li
 $total_listings = fetch_total_count($conn, 'listings');
 $total_listings_pages = ceil($total_listings / $listings_perPage);
 
+// Count listings with 'under_review' state
+$under_review_count = fetch_under_review_count($conn);
+
 // Function to update user data
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_user'])) {
     $user_id = $_POST['user_id'];
@@ -77,8 +95,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_user'])) {
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("sssssssi", $username, $email, $status, $firstname, $lastname, $green_points, $is_admin, $user_id);
     $stmt->execute();
-    header('Location: admin_panel.php');
+    header('Location: admin_panel.php?tab=users&message=User updated successfully');
     exit;
+}
+
+// Function to update listing data
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_listing'])) {
+    $listing_id = $_POST['listing_id'];
+    $title = $_POST['title'];
+    $listing_description = $_POST['listing_description'];
+    $state = $_POST['state'];
+    $listing_type = $_POST['listing_type'];
+
+    $sql = "UPDATE listings SET title=?, listing_description=?, state=?, listing_type=? WHERE id=?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssssi", $title, $listing_description, $state, $listing_type, $listing_id);
+    
+    if ($stmt->execute()) {
+        header('Location: admin_panel.php?tab=listings&message=Listing updated successfully');
+        exit;
+    } else {
+        error_log('Failed to update listing: ' . $stmt->error);
+        echo 'Error updating listing.';
+    }
 }
 
 // Function to delete user data
@@ -93,7 +132,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
-    header('Location: admin_panel.php');
+    header('Location: admin_panel.php?tab=users&message=User deleted successfully');
+    exit;
+}
+
+// Function to delete listing data
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_listing'])) {
+    $listing_id = $_POST['listing_id'];
+
+    $sql = "DELETE FROM listings WHERE id=?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $listing_id);
+    $stmt->execute();
+    header('Location: admin_panel.php?tab=listings&message=Listing deleted successfully');
     exit;
 }
 ?>
@@ -134,6 +185,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
             max-width: 100%;
             overflow-x: auto;
         }
+        .under-review {
+            background-color: lightcoral !important;
+        }
     </style>
 </head>
 <body class="p-3 m-0 border-0 bd-example m-0 border-0">
@@ -145,20 +199,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
 <div class="container mt-5">
     <h2>Admin Panel</h2>
     
+    <?php if ($under_review_count > 0): ?>
+    <div class="alert alert-info" role="alert">
+        Important, there are <?php echo $under_review_count; ?> listings reported which need to be reviewed.
+    </div>
+    <?php endif; ?>
+    
+    <?php if (isset($_GET['message'])): ?>
+    <div class="alert alert-success" role="alert">
+        <?php echo htmlspecialchars($_GET['message']); ?>
+    </div>
+    <?php endif; ?>
+
     <!-- Tabs navigation -->
     <ul class="nav nav-tabs" id="adminTab" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="true">Users</button>
+            <button class="nav-link <?php echo (!isset($_GET['tab']) || $_GET['tab'] == 'users') ? 'active' : ''; ?>" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button" role="tab" aria-controls="users" aria-selected="<?php echo (!isset($_GET['tab']) || $_GET['tab'] == 'users') ? 'true' : 'false'; ?>">Users</button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="listings-tab" data-bs-toggle="tab" data-bs-target="#listings" type="button" role="tab" aria-controls="listings" aria-selected="false">Listings</button>
+            <button class="nav-link <?php echo (isset($_GET['tab']) && $_GET['tab'] == 'listings') ? 'active' : ''; ?>" id="listings-tab" data-bs-toggle="tab" data-bs-target="#listings" type="button" role="tab" aria-controls="listings" aria-selected="<?php echo (isset($_GET['tab']) && $_GET['tab'] == 'listings') ? 'true' : 'false'; ?>">Listings</button>
         </li>
     </ul>
 
     <!-- Tabs content -->
     <div class="tab-content" id="adminTabContent">
         <!-- Users Tab -->
-        <div class="tab-pane fade show active" id="users" role="tabpanel" aria-labelledby="users-tab">
+        <div class="tab-pane fade <?php echo (!isset($_GET['tab']) || $_GET['tab'] == 'users') ? 'show active' : ''; ?>" id="users" role="tabpanel" aria-labelledby="users-tab">
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead>
@@ -178,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
                     <tbody>
                         <?php foreach ($users as $user) { ?>
                         <tr>
-                            <form method="post" action="admin_panel.php" class="user-form">
+                            <form method="post" action="admin_panel.php?tab=users" class="user-form">
                                 <td><?php echo htmlspecialchars($user['id']); ?></td>
                                 <td><?php echo htmlspecialchars($user['created_at']); ?></td>
                                 <td><input type="text" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" class="form-control" disabled></td>
@@ -213,17 +279,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
                 <ul class="pagination">
                     <?php if ($users_page > 1): ?>
                         <li class="page-item">
-                            <a class="page-link" href="?tab=users&users_page=<?php echo htmlspecialchars($users_page - 1); ?>" aria-label="Previous">
+                            <a class="page-link" href="?tab=users&users_page=<?php echo htmlspecialchars($users_page - 1); ?>&users_sort_column=<?php echo htmlspecialchars($users_sort_column); ?>&users_sort_order=<?php echo htmlspecialchars($users_sort_order); ?>" aria-label="Previous">
                                 <span aria-hidden="true">&laquo;</span>
                             </a>
                         </li>
                     <?php endif; ?>
                     <?php for ($i = 1; $i <= $total_users_pages; $i++) { ?>
-                    <li class="page-item <?php if ($users_page == $i) echo 'active'; ?>"><a class="page-link" href="?tab=users&users_page=<?php echo htmlspecialchars($i); ?>"><?php echo htmlspecialchars($i); ?></a></li>
+                    <li class="page-item <?php if ($users_page == $i) echo 'active'; ?>"><a class="page-link" href="?tab=users&users_page=<?php echo htmlspecialchars($i); ?>&users_sort_column=<?php echo htmlspecialchars($users_sort_column); ?>&users_sort_order=<?php echo htmlspecialchars($users_sort_order); ?>"><?php echo htmlspecialchars($i); ?></a></li>
                     <?php } ?>
                     <?php if ($users_page < $total_users_pages): ?>
                         <li class="page-item">
-                            <a class="page-link" href="?tab=users&users_page=<?php echo htmlspecialchars($users_page + 1); ?>" aria-label="Next">
+                            <a class="page-link" href="?tab=users&users_page=<?php echo htmlspecialchars($users_page + 1); ?>&users_sort_column=<?php echo htmlspecialchars($users_sort_column); ?>&users_sort_order=<?php echo htmlspecialchars($users_sort_order); ?>" aria-label="Next">
                                 <span aria-hidden="true">&raquo;</span>
                             </a>
                         </li>
@@ -233,26 +299,57 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
         </div>
         
         <!-- Listings Tab -->
-        <div class="tab-pane fade" id="listings" role="tabpanel" aria-labelledby="listings-tab">
+        <div class="tab-pane fade <?php echo (isset($_GET['tab']) && $_GET['tab'] == 'listings') ? 'show active' : ''; ?>" id="listings" role="tabpanel" aria-labelledby="listings-tab">
             <div class="table-responsive">
                 <table class="table table-bordered">
                     <thead>
                         <tr>
                             <th><a href="?tab=listings&listings_sort_column=id&listings_sort_order=<?php echo $listings_sort_order === 'ASC' ? 'DESC' : 'ASC'; ?>">ID</a></th>
-                            <th><a href="?tab=listings&listings_sort_column=created_at&listings_sort_order=<?php echo $listings_sort_order === 'ASC' ? 'DESC' : 'ASC'; ?>">Created</a></th>
+                            <th><a href="?tab=listings&listings_sort_column=time_added&listings_sort_order=<?php echo $listings_sort_order === 'ASC' ? 'DESC' : 'ASC'; ?>">Time Added</a></th>
                             <th><a href="?tab=listings&listings_sort_column=title&listings_sort_order=<?php echo $listings_sort_order === 'ASC' ? 'DESC' : 'ASC'; ?>">Title</a></th>
-                            <th><a href="?tab=listings&listings_sort_column=description&listings_sort_order=<?php echo $listings_sort_order === 'ASC' ? 'DESC' : 'ASC'; ?>">Description</a></th>
-                            <th><a href="?tab=listings&listings_sort_column=price&listings_sort_order=<?php echo $listings_sort_order === 'ASC' ? 'DESC' : 'ASC'; ?>">Price</a></th>
+                            <th><a href="?tab=listings&listings_sort_column=location_name&listings_sort_order=<?php echo $listings_sort_order === 'ASC' ? 'DESC' : 'ASC'; ?>">Location</a></th>
+                            <th><a href="?tab=listings&listings_sort_column=listing_description&listings_sort_order=<?php echo $listings_sort_order === 'ASC' ? 'DESC' : 'ASC'; ?>">Description</a></th>
+                            <th><a href="?tab=listings&listings_sort_column=username&listings_sort_order=<?php echo $listings_sort_order === 'ASC' ? 'DESC' : 'ASC'; ?>">User</a></th>
+                            <th><a href="?tab=listings&listings_sort_column=state&listings_sort_order=<?php echo $listings_sort_order === 'ASC' ? 'DESC' : 'ASC'; ?>">State</a></th>
+                            <th><a href="?tab=listings&listings_sort_column=listing_type&listings_sort_order=<?php echo $listings_sort_order === 'ASC' ? 'DESC' : 'ASC'; ?>">Type</a></th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($listings as $listing) { ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($listing['id']); ?></td>
-                            <td><?php echo htmlspecialchars($listing['created_at']); ?></td>
-                            <td><?php echo htmlspecialchars($listing['title']); ?></td>
-                            <td><?php echo htmlspecialchars($listing['description']); ?></td>
-                            <td><?php echo htmlspecialchars($listing['price']); ?></td>
+                        <tr class="<?php echo $listing['state'] == 'under_review' ? 'under-review' : ''; ?>">
+                            <form method="post" action="admin_panel.php?tab=listings" class="listing-form">
+                                <td><?php echo htmlspecialchars($listing['id']); ?></td>
+                                <td><?php echo htmlspecialchars($listing['time_added']); ?></td>
+                                <td><input type="text" name="title" value="<?php echo htmlspecialchars($listing['title']); ?>" class="form-control" disabled></td>
+                                <td><?php echo htmlspecialchars($listing['location_name']); ?></td>
+                                <td><input type="text" name="listing_description" value="<?php echo htmlspecialchars($listing['listing_description']); ?>" class="form-control" disabled></td>
+                                <td><?php echo htmlspecialchars($listing['username']); ?></td>
+                                <td>
+                                    <select name="state" class="form-select" disabled>
+                                        <option value="available" <?php echo $listing['state'] == 'available' ? 'selected' : ''; ?>>Available</option>
+                                        <option value="unavailable" <?php echo $listing['state'] == 'unavailable' ? 'selected' : ''; ?>>Unavailable</option>
+                                        <option value="pending_collection" <?php echo $listing['state'] == 'pending_collection' ? 'selected' : ''; ?>>Pending Collection</option>
+                                        <option value="under_review" <?php echo $listing['state'] == 'under_review' ? 'selected' : ''; ?>>Under Review</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select name="listing_type" class="form-select" disabled>
+                                        <option value="sharing" <?php echo $listing['listing_type'] == 'sharing' ? 'selected' : ''; ?>>Sharing</option>
+                                        <option value="wanted" <?php echo $listing['listing_type'] == 'wanted' ? 'selected' : ''; ?>>Wanted</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <input type="hidden" name="listing_id" value="<?php echo htmlspecialchars($listing['id']); ?>">
+                                    <input type="hidden" name="delete_listing" value="">
+                                    <div class="d-flex">
+                                        <button type="button" class="btn btn-warning edit-btn me-2">Edit</button>
+                                        <button type="submit" name="update_listing" class="btn btn-primary save-btn d-none me-2">Save</button>
+                                        <button type="button" class="btn btn-danger delete-btn d-none me-2" data-bs-toggle="modal" data-bs-target="#deleteModalListing" data-listing-id="<?php echo htmlspecialchars($listing['id']); ?>">Delete</button>
+                                        <button type="button" class="btn btn-secondary cancel-btn d-none">Cancel</button>
+                                    </div>
+                                </td>
+                            </form>
                         </tr>
                         <?php } ?>
                     </tbody>
@@ -262,17 +359,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
                 <ul class="pagination">
                     <?php if ($listings_page > 1): ?>
                         <li class="page-item">
-                            <a class="page-link" href="?tab=listings&listings_page=<?php echo htmlspecialchars($listings_page - 1); ?>" aria-label="Previous">
+                            <a class="page-link" href="?tab=listings&listings_page=<?php echo htmlspecialchars($listings_page - 1); ?>&listings_sort_column=<?php echo htmlspecialchars($listings_sort_column); ?>&listings_sort_order=<?php echo htmlspecialchars($listings_sort_order); ?>" aria-label="Previous">
                                 <span aria-hidden="true">&laquo;</span>
                             </a>
                         </li>
                     <?php endif; ?>
                     <?php for ($i = 1; $i <= $total_listings_pages; $i++) { ?>
-                    <li class="page-item <?php if ($listings_page == $i) echo 'active'; ?>"><a class="page-link" href="?tab=listings&listings_page=<?php echo htmlspecialchars($i); ?>"><?php echo htmlspecialchars($i); ?></a></li>
+                    <li class="page-item <?php if ($listings_page == $i) echo 'active'; ?>"><a class="page-link" href="?tab=listings&listings_page=<?php echo htmlspecialchars($i); ?>&listings_sort_column=<?php echo htmlspecialchars($listings_sort_column); ?>&listings_sort_order=<?php echo htmlspecialchars($listings_sort_order); ?>"><?php echo htmlspecialchars($i); ?></a></li>
                     <?php } ?>
                     <?php if ($listings_page < $total_listings_pages): ?>
                         <li class="page-item">
-                            <a class="page-link" href="?tab=listings&listings_page=<?php echo htmlspecialchars($listings_page + 1); ?>" aria-label="Next">
+                            <a class="page-link" href="?tab=listings&listings_page=<?php echo htmlspecialchars($listings_page + 1); ?>&listings_sort_column=<?php echo htmlspecialchars($listings_sort_column); ?>&listings_sort_order=<?php echo htmlspecialchars($listings_sort_order); ?>" aria-label="Next">
                                 <span aria-hidden="true">&raquo;</span>
                             </a>
                         </li>
@@ -283,7 +380,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
     </div>
 </div>
 
-<!-- Delete Modal -->
+<!-- Delete User Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -296,6 +393,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['delete_user'])) {
                     Are you sure you want to delete this user?
                     <input type="hidden" name="user_id" id="deleteUserId">
                     <input type="hidden" name="delete_user" value="true">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Listing Modal -->
+<div class="modal fade" id="deleteModalListing" tabindex="-1" aria-labelledby="deleteModalListingLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="deleteFormListing" method="post" action="admin_panel.php">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalListingLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this listing?
+                    <input type="hidden" name="listing_id" id="deleteListingId">
+                    <input type="hidden" name="delete_listing" value="true">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -355,7 +475,13 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.delete-btn').forEach(function(button) {
         button.addEventListener('click', function() {
             const userId = this.getAttribute('data-user-id');
-            document.getElementById('deleteUserId').value = userId;
+            const listingId = this.getAttribute('data-listing-id');
+            if (userId) {
+                document.getElementById('deleteUserId').value = userId;
+            }
+            if (listingId) {
+                document.getElementById('deleteListingId').value = listingId;
+            }
         });
     });
 
