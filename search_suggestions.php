@@ -9,18 +9,21 @@ if (!isset($_SESSION['loggedin'])) {
 
 include 'connection.php';
 
-$query = isset($_GET['query']) ? $_GET['query'] : '';
-$locationIds = isset($_GET['locationIds']) ? $_GET['locationIds'] : '';
+// Sanitize input
+$query = isset($_GET['query']) ? trim($_GET['query']) : '';
+$locationIds = isset($_GET['locationIds']) ? trim($_GET['locationIds']) : '';
 
 if (empty($query) || empty($locationIds)) {
     echo json_encode([]);
     exit;
 }
 
-$locationIdsArray = explode(',', $locationIds);
+// Sanitize and prepare location IDs
+$locationIdsArray = array_map('intval', explode(',', $locationIds));
 $locationIdsPlaceholder = implode(',', array_fill(0, count($locationIdsArray), '?'));
 
-$searchTerm = '%' . $query . '%';
+// Prepare the search term
+$searchTerm = '%' . $conn->real_escape_string($query) . '%';
 
 $sql = "
     SELECT 
@@ -37,7 +40,7 @@ $sql = "
 
 $stmt = $conn->prepare($sql);
 if (!$stmt) {
-    echo json_encode(['error' => $conn->error]);
+    echo json_encode(['error' => htmlspecialchars($conn->error, ENT_QUOTES, 'UTF-8')]);
     exit;
 }
 
@@ -49,10 +52,10 @@ $result = $stmt->get_result();
 $suggestions = [];
 while ($row = $result->fetch_assoc()) {
     $suggestions[] = [
-        'id' => $row['id'],
-        'title' => $row['title'],
-        'image' => $row['image'],
-        'listing_type' => $row['listing_type']
+        'id' => htmlspecialchars($row['id'], ENT_QUOTES, 'UTF-8'),
+        'title' => htmlspecialchars($row['title'], ENT_QUOTES, 'UTF-8'),
+        'image' => htmlspecialchars($row['image'], ENT_QUOTES, 'UTF-8'),
+        'listing_type' => htmlspecialchars($row['listing_type'], ENT_QUOTES, 'UTF-8')
     ];
 }
 

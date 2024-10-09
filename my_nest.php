@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
 
     $listing = $result->fetch_assoc();
     $recipient_id = $listing['user_id'];
-    $listing_title = $listing['title'];
+    $listing_title = htmlspecialchars($listing['title'], ENT_QUOTES, 'UTF-8');
 
     // Fetch sender and recipient usernames
     $sql = "SELECT id, username, email FROM users WHERE id IN (?, ?)";
@@ -79,11 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
 
     while ($user = $result->fetch_assoc()) {
         if ($user['id'] == $sender_id) {
-            $sender_username = $user['username'];
-            $sender_email = $user['email'];
+            $sender_username = htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8');
+            $sender_email = htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8');
         } else {
-            $recipient_username = $user['username'];
-            $recipient_email = $user['email'];
+            $recipient_username = htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8');
+            $recipient_email = htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8');
         }
     }
 
@@ -116,7 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
             $conn->commit();
         } catch (Exception $e) {
             $conn->rollback();
-            $_SESSION['message'] = "Error creating conversation: " . $e->getMessage();
+            $_SESSION['message'] = "Error creating conversation: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
             header('Location: my_nest.php');
             exit;
         }
@@ -152,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
             $template = file_get_contents($templatePath);
             $emailBody = str_replace(
                 ['{{recipient_username}}', '{{sender_username}}', '{{listing_title}}', '{{message}}'],
-                [htmlspecialchars($recipient_username), htmlspecialchars($sender_username), htmlspecialchars($listing_title), nl2br(htmlspecialchars($message))],
+                [$recipient_username, $sender_username, $listing_title, nl2br($message)],
                 $template
             );
 
@@ -171,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
             $mail->send();
             $_SESSION['message'] = "Message sent successfully and the recipient has been notified!";
         } catch (Exception $e) {
-            $_SESSION['message'] = "Message sent but email notification failed: {$mail->ErrorInfo}. Exception: {$e->getMessage()}";
+            $_SESSION['message'] = "Message sent but email notification failed: " . htmlspecialchars($mail->ErrorInfo, ENT_QUOTES, 'UTF-8') . ". Exception: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
         }
     } else {
         $_SESSION['message'] = "Error sending message.";
@@ -415,7 +415,7 @@ $locationIdsStr = implode(',', $locationIds);
 <div class="container mt-5">
     <h2>Available Listings</h2>
     <?php if (isset($_SESSION['message'])): ?>
-        <div class="alert alert-info"><?php echo $_SESSION['message']; unset($_SESSION['message']); ?></div>
+        <div class="alert alert-info"><?php echo htmlspecialchars($_SESSION['message'], ENT_QUOTES, 'UTF-8'); unset($_SESSION['message']); ?></div>
     <?php endif; ?>
     <?php if (empty($locationIds)): ?>
         <div class="alert alert-info" role="alert">
@@ -454,7 +454,7 @@ $locationIdsStr = implode(',', $locationIds);
 <script>
     let offset = 0;
     const limit = 20;
-    const locationIdsStr = "<?php echo $locationIdsStr; ?>";
+    const locationIdsStr = "<?php echo htmlspecialchars($locationIdsStr, ENT_QUOTES, 'UTF-8'); ?>";
     let currentFilter = 'all';
     let searchTerm = '';
     const placeholderImage = 'img/listing_placeholder.jpeg';
@@ -499,7 +499,7 @@ $locationIdsStr = implode(',', $locationIds);
                         suggestionElement.classList.add('search-suggestion');
                         suggestionElement.innerHTML = `
                             <img src="${suggestion.image ? suggestion.image : placeholderImage}" alt="${suggestion.title}">
-                            <span>${suggestion.title}</span>
+                            <span>${decodeEntities(suggestion.title)}</span>
                             <span class="badge ${suggestion.listing_type === 'sharing' ? 'badge-suggestion-sharing' : 'badge-suggestion-wanted'}">
                                 ${suggestion.listing_type === 'sharing' ? 'For Sharing' : 'Wanted'}
                             </span>
@@ -582,7 +582,7 @@ $locationIdsStr = implode(',', $locationIds);
                     categoryBadge.textContent = listing.listing_type === 'sharing' ? 'For Sharing' : 'Wanted';
 
                     const locationInfo = document.createElement('span');
-                    locationInfo.textContent = `Location: ${listing.location_name}`;
+                    locationInfo.textContent = `Location: ${decodeEntities(listing.location_name)}`;
                     locationInfo.style.marginTop = '5px';
 
                     listingHeaderLeft.appendChild(categoryBadge);
@@ -612,17 +612,17 @@ $locationIdsStr = implode(',', $locationIds);
 
                     const listingTitle = document.createElement('div');
                     listingTitle.classList.add('listing-title');
-                    listingTitle.textContent = listing.title;
+                    listingTitle.textContent = decodeEntities(listing.title);
 
                     const listingDescription = document.createElement('div');
                     listingDescription.classList.add('listing-description');
-                    listingDescription.textContent = `${listing.listing_description.substring(0, 200)}...`;
+                    listingDescription.textContent = `${decodeEntities(listing.listing_description.substring(0, 200))}...`;
 
                     const listingFooter = document.createElement('div');
                     listingFooter.classList.add('listing-footer');
 
                     const listingUser = document.createElement('span');
-                    listingUser.textContent = `Listed by: ${listing.username}`;
+                    listingUser.textContent = `Listed by: ${decodeEntities(listing.username)}`;
 
                     const seeDetailsButton = document.createElement('button');
                     seeDetailsButton.classList.add('btn', 'btn-outline-success');
@@ -696,16 +696,16 @@ $locationIdsStr = implode(',', $locationIds);
                                 <div class="modal-header">
                                     <span class="badge ${badgeClass}" style="margin-right: 10px;">${badgeText}</span>
                                     <h5 class="modal-title" id="modalLabel-${listing.id}">
-                                        ${listing.title}
+                                        ${decodeEntities(listing.title)}
                                     </h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                 </div>
                                 <div class="modal-body">
                                     ${modalBodyContent}
                                     <div class="mt-3">
-                                        <p>${listing.listing_description}</p>
-                                        <p><strong>Location:</strong> ${listing.location_name}</p>
-                                        <p><strong>Listed by:</strong> ${listing.username}</p>
+                                        <p>${decodeEntities(listing.listing_description)}</p>
+                                        <p><strong>Location:</strong> ${decodeEntities(listing.location_name)}</p>
+                                        <p><strong>Listed by:</strong> ${decodeEntities(listing.username)}</p>
                                         <p><strong>Posted:</strong> ${timeElapsedString(listing.time_added)}</p>
                                         ${listing.postcode ? `<div id="map-${listing.id}" style="height: 400px; width: 100%;"></div>` : ''}
                                         <form action="my_nest.php" method="POST" onsubmit="return validateMessage(${listing.id});">
@@ -840,7 +840,7 @@ $locationIdsStr = implode(',', $locationIds);
                 // Handle the response from the server (e.g., show a success message, close the modal, etc.)
                 console.log('Message sent:', data);
                 alert('Message sent successfully.');
-                const modalElement = document.getElementById(`modal-${listingId}`);
+                const modalElement = document.getElementById(`modal-${listing.id}`);
                 const modalInstance = bootstrap.Modal.getInstance(modalElement);
                 modalInstance.hide();
             })
@@ -851,6 +851,12 @@ $locationIdsStr = implode(',', $locationIds);
                 button.classList.remove('d-none');
             });
         });
+    }
+
+    function decodeEntities(encodedString) {
+        const textArea = document.createElement('textarea');
+        textArea.innerHTML = encodedString;
+        return textArea.value;
     }
 </script>
 

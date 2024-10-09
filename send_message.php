@@ -105,9 +105,17 @@ if ($stmt->execute()) {
             throw new Exception("Email template not found at $templatePath");
         }
         $template = file_get_contents($templatePath);
+        
+        // Sanitize and encode variables for HTML output
+        $safe_recipient_username = htmlspecialchars($recipient_username);
+        $safe_sender_username = htmlspecialchars($sender_username);
+        $safe_listing_title = htmlspecialchars($listing_title);
+        $safe_message = nl2br(htmlspecialchars($message));
+
+        // Replace placeholders in the template
         $emailBody = str_replace(
             ['{{recipient_username}}', '{{sender_username}}', '{{listing_title}}', '{{message}}'],
-            [htmlspecialchars($recipient_username), htmlspecialchars($sender_username), htmlspecialchars($listing_title), nl2br(htmlspecialchars($message))],
+            [$safe_recipient_username, $safe_sender_username, $safe_listing_title, $safe_message],
             $template
         );
 

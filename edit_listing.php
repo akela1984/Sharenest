@@ -12,24 +12,16 @@ include 'connection.php';
 $success_message = '';
 $error_message = '';
 
-// Enable error logging
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 // Fetch the username from the session
-$username = $_SESSION['username'];
+$username = htmlspecialchars($_SESSION['username']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['update_listing'])) {
         $listing_id = intval($_POST['listing_id']);
-        $title = $_POST['title'];
-        $listing_description = $_POST['listing_description'];
-        $listing_type = $_POST['listing_type'];
-        $state = $_POST['state'];
-
-        // Debug: Log the input values
-        echo "Updating listing: ID=$listing_id, Title=$title, Description=$listing_description, Type=$listing_type, State=$state<br>";
+        $title = htmlspecialchars($_POST['title']);
+        $listing_description = htmlspecialchars($_POST['listing_description']);
+        $listing_type = htmlspecialchars($_POST['listing_type']);
+        $state = htmlspecialchars($_POST['state']);
 
         // Update listing details
         $sql_update = "
@@ -39,64 +31,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ";
         $stmt_update = $conn->prepare($sql_update);
         if ($stmt_update === false) {
-            echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
-        }
-        $stmt_update->bind_param("ssssis", $title, $listing_description, $listing_type, $state, $listing_id, $_SESSION['username']);
-        
-        if ($stmt_update->execute()) {
-            echo "Listing updated successfully.<br>";
-            $success_message = "Listing updated successfully.";
-
-            // Handle image upload
-            if (!empty($_FILES['images']['name'][0])) {
-                // Delete old images
-                $sql_images = "SELECT image_url FROM listing_images WHERE listing_id = ?";
-                $stmt_images = $conn->prepare($sql_images);
-                if ($stmt_images === false) {
-                    echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
-                }
-                $stmt_images->bind_param("i", $listing_id);
-                $stmt_images->execute();
-                $result_images = $stmt_images->get_result();
-                
-                while ($row = $result_images->fetch_assoc()) {
-                    $image_path = $row['image_url'];
-                    if (file_exists($image_path)) {
-                        unlink($image_path); // Delete the file
-                    }
-                }
-
-                // Delete old image records from database
-                $sql_delete_images = "DELETE FROM listing_images WHERE listing_id = ?";
-                $stmt_delete_images = $conn->prepare($sql_delete_images);
-                if ($stmt_delete_images === false) {
-                    echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
-                }
-                $stmt_delete_images->bind_param("i", $listing_id);
-                $stmt_delete_images->execute();
-
-                // Upload new images
-                $upload_dir = 'uploads/listing_images/';
-                foreach ($_FILES['images']['tmp_name'] as $key => $tmp_name) {
-                    $file_extension = pathinfo($_FILES['images']['name'][$key], PATHINFO_EXTENSION);
-                    $random_code = bin2hex(random_bytes(5)); // Generate a random code
-                    $file_name = $username . '_' . date('YmdHis') . '_' . $random_code . '.' . $file_extension;
-                    $file_path = $upload_dir . $file_name;
-                    if (move_uploaded_file($tmp_name, $file_path)) {
-                        $sql_insert_image = "INSERT INTO listing_images (listing_id, image_url) VALUES (?, ?)";
-                        $stmt_insert_image = $conn->prepare($sql_insert_image);
-                        if ($stmt_insert_image === false) {
-                            echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
-                        }
-                        $stmt_insert_image->bind_param("is", $listing_id, $file_path);
-                        $stmt_insert_image->execute();
-                    }
-                }
-            }
-
+            $error_message = 'Prepare failed: ' . htmlspecialchars($conn->error);
         } else {
-            $error_message = "Error updating listing.";
-            echo 'Execute failed: ' . htmlspecialchars($stmt_update->error) . "<br>";
+            $stmt_update->bind_param("ssssis", $title, $listing_description, $listing_type, $state, $listing_id, $_SESSION['username']);
+            if ($stmt_update->execute()) {
+                $success_message = "Listing updated successfully.";
+
+                // Handle image upload
+                if (!empty($_FILES['images']['name'][0])) {
+                    // Delete old images
+                    $sql_images = "SELECT image_url FROM listing_images WHERE listing_id = ?";
+                    $stmt_images = $conn->prepare($sql_images);
+                    if ($stmt_images === false) {
+                        $error_message = 'Prepare failed: ' . htmlspecialchars($conn->error);
+                    } else {
+                        $stmt_images->bind_param("i", $listing_id);
+                        $stmt_images->execute();
+                        $result_images = $stmt_images->get_result();
+                        while ($row = $result_images->fetch_assoc()) {
+                            $image_path = $row['image_url'];
+                            if (file_exists($image_path)) {
+                                unlink($image_path); // Delete the file
+                            }
+                        }
+
+                        // Delete old image records from database
+                        $sql_delete_images = "DELETE FROM listing_images WHERE listing_id = ?";
+                        $stmt_delete_images = $conn->prepare($sql_delete_images);
+                        if ($stmt_delete_images === false) {
+                            $error_message = 'Prepare failed: ' . htmlspecialchars($conn->error);
+                        } else {
+                            $stmt_delete_images->bind_param("i", $listing_id);
+                            $stmt_delete_images->execute();
+                        }
+
+                        // Upload new images
+                        $upload_dir = 'uploads/listing_images/';
+                        foreach ($_FILES['images']['tmp_name'] as $key => $tmp_name) {
+                            $file_extension = pathinfo($_FILES['images']['name'][$key], PATHINFO_EXTENSION);
+                            $random_code = bin2hex(random_bytes(5)); // Generate a random code
+                            $file_name = $username . '_' . date('YmdHis') . '_' . $random_code . '.' . $file_extension;
+                            $file_path = $upload_dir . $file_name;
+                            if (move_uploaded_file($tmp_name, $file_path)) {
+                                $sql_insert_image = "INSERT INTO listing_images (listing_id, image_url) VALUES (?, ?)";
+                                $stmt_insert_image = $conn->prepare($sql_insert_image);
+                                if ($stmt_insert_image === false) {
+                                    $error_message = 'Prepare failed: ' . htmlspecialchars($conn->error);
+                                } else {
+                                    $stmt_insert_image->bind_param("is", $listing_id, $file_path);
+                                    $stmt_insert_image->execute();
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                $error_message = "Error updating listing.";
+            }
         }
     } elseif (isset($_POST['delete_listing'])) {
         $listing_id = intval($_POST['listing_id']);
@@ -105,42 +96,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $sql_images = "SELECT image_url FROM listing_images WHERE listing_id = ?";
         $stmt_images = $conn->prepare($sql_images);
         if ($stmt_images === false) {
-            echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
-        }
-        $stmt_images->bind_param("i", $listing_id);
-        $stmt_images->execute();
-        $result_images = $stmt_images->get_result();
-        
-        while ($row = $result_images->fetch_assoc()) {
-            $image_path = $row['image_url'];
-            if (file_exists($image_path)) {
-                unlink($image_path); // Delete the file
-            }
-        }
-
-        // Delete from listing_images
-        $sql_delete_images = "DELETE FROM listing_images WHERE listing_id = ?";
-        $stmt_delete_images = $conn->prepare($sql_delete_images);
-        if ($stmt_delete_images === false) {
-            echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
-        }
-        $stmt_delete_images->bind_param("i", $listing_id);
-        $stmt_delete_images->execute();
-
-        // Delete from listings
-        $sql_delete_listing = "DELETE FROM listings WHERE id = ? AND user_id = (SELECT id FROM users WHERE username = ?)";
-        $stmt_delete_listing = $conn->prepare($sql_delete_listing);
-        if ($stmt_delete_listing === false) {
-            echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
-        }
-        $stmt_delete_listing->bind_param("is", $listing_id, $_SESSION['username']);
-        
-        if ($stmt_delete_listing->execute()) {
-            header('Location: my_listings.php?success_message=Listing deleted successfully.');
-            exit;
+            $error_message = 'Prepare failed: ' . htmlspecialchars($conn->error);
         } else {
-            $error_message = "Error deleting listing.";
-            echo 'Execute failed: ' . htmlspecialchars($stmt_delete_listing->error) . "<br>";
+            $stmt_images->bind_param("i", $listing_id);
+            $stmt_images->execute();
+            $result_images = $stmt_images->get_result();
+            while ($row = $result_images->fetch_assoc()) {
+                $image_path = $row['image_url'];
+                if (file_exists($image_path)) {
+                    unlink($image_path); // Delete the file
+                }
+            }
+
+            // Delete from listing_images
+            $sql_delete_images = "DELETE FROM listing_images WHERE listing_id = ?";
+            $stmt_delete_images = $conn->prepare($sql_delete_images);
+            if ($stmt_delete_images === false) {
+                $error_message = 'Prepare failed: ' . htmlspecialchars($conn->error);
+            } else {
+                $stmt_delete_images->bind_param("i", $listing_id);
+                $stmt_delete_images->execute();
+            }
+
+            // Delete from listings
+            $sql_delete_listing = "DELETE FROM listings WHERE id = ? AND user_id = (SELECT id FROM users WHERE username = ?)";
+            $stmt_delete_listing = $conn->prepare($sql_delete_listing);
+            if ($stmt_delete_listing === false) {
+                $error_message = 'Prepare failed: ' . htmlspecialchars($conn->error);
+            } else {
+                $stmt_delete_listing->bind_param("is", $listing_id, $_SESSION['username']);
+                if ($stmt_delete_listing->execute()) {
+                    header('Location: my_dashboard.php?success_message=' . urlencode('Listing deleted successfully.'));
+                    exit;
+                } else {
+                    $error_message = "Error deleting listing.";
+                }
+            }
         }
     }
 } else {
@@ -151,7 +142,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $sql = "SELECT * FROM listings WHERE id = ? AND user_id = (SELECT id FROM users WHERE username = ?)";
 $stmt = $conn->prepare($sql);
 if ($stmt === false) {
-    echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
+    $error_message = 'Prepare failed: ' . htmlspecialchars($conn->error);
 }
 $stmt->bind_param("is", $listing_id, $_SESSION['username']);
 $stmt->execute();
@@ -168,14 +159,14 @@ if ($result->num_rows > 0) {
 $sql_images = "SELECT image_url FROM listing_images WHERE listing_id = ?";
 $stmt_images = $conn->prepare($sql_images);
 if ($stmt_images === false) {
-    echo 'Prepare failed: ' . htmlspecialchars($conn->error) . "<br>";
+    $error_message = 'Prepare failed: ' . htmlspecialchars($conn->error);
 }
 $stmt_images->bind_param("i", $listing_id);
 $stmt_images->execute();
 $result_images = $stmt_images->get_result();
 $images = [];
 while ($row = $result_images->fetch_assoc()) {
-    $images[] = $row['image_url'];
+    $images[] = htmlspecialchars($row['image_url']);
 }
 ?>
 
@@ -201,17 +192,17 @@ while ($row = $result_images->fetch_assoc()) {
 
     <?php if ($success_message): ?>
         <div class="alert alert-success" role="alert">
-            <?php echo $success_message; ?>
+            <?php echo htmlspecialchars($success_message); ?>
         </div>
     <?php endif; ?>
     <?php if ($error_message): ?>
         <div class="alert alert-danger" role="alert">
-            <?php echo $error_message; ?>
+            <?php echo htmlspecialchars($error_message); ?>
         </div>
     <?php endif; ?>
 
     <form action="edit_listing.php" method="POST" enctype="multipart/form-data">
-        <input type="hidden" name="listing_id" value="<?php echo $listing['id']; ?>">
+        <input type="hidden" name="listing_id" value="<?php echo htmlspecialchars($listing['id']); ?>">
         
         <div class="mb-3">
             <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
@@ -251,7 +242,7 @@ while ($row = $result_images->fetch_assoc()) {
             <label class="form-label">Current Images</label>
             <div>
                 <?php foreach ($images as $image): ?>
-                    <img src="<?php echo htmlspecialchars($image); ?>" alt="Listing Image" class="img-fluid my-listings-image">
+                    <img src="<?php echo $image; ?>" alt="Listing Image" class="img-fluid my-listings-image">
                 <?php endforeach; ?>
             </div>
         </div>
@@ -259,20 +250,53 @@ while ($row = $result_images->fetch_assoc()) {
         <div class="d-flex justify-content-between">
             <div>
                 <button type="submit" name="update_listing" class="btn btn-outline-success me-2">Update Listing</button>
-                <button type="submit" name="delete_listing" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to delete this listing?');">Delete Listing</button>
+                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-listing-id="<?php echo htmlspecialchars($listing['id']); ?>">Delete Listing</button>
             </div>
             <a href="my_dashboard.php" class="btn btn-outline-warning">Back to Dashboard</a>
         </div>
     </form>
 </div>
 
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="deleteForm" method="post" action="edit_listing.php">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this listing?
+                    <input type="hidden" name="listing_id" id="deleteListingId">
+                    <input type="hidden" name="delete_listing" value="true">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Bootstrap Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+
+    var deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var listingId = button.getAttribute('data-listing-id');
+        var deleteListingIdInput = document.getElementById('deleteListingId');
+        deleteListingIdInput.value = listingId;
+    });
+});
 </script>
 </body>
 </html>

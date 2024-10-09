@@ -15,6 +15,16 @@ if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) {
     $stmt_unread_count->execute();
     $result_unread_count = $stmt_unread_count->get_result();
     $unreadConversationsCount = $result_unread_count->fetch_assoc()['unread_count'];
+
+    // Check if the user is an admin
+    $sql_is_admin = "SELECT is_admin FROM users WHERE id = ?";
+    $stmt_is_admin = $conn->prepare($sql_is_admin);
+    $stmt_is_admin->bind_param("i", $userId);
+    $stmt_is_admin->execute();
+    $result_is_admin = $stmt_is_admin->get_result();
+    $is_admin = $result_is_admin->fetch_assoc()['is_admin'] === 'true';
+} else {
+    $is_admin = false;
 }
 ?>
 
@@ -28,16 +38,20 @@ if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) {
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse justify-content-end" id="navbarSupportedContent">
-            <ul class="navbar-nav mb-2 mb-lg-0">
+            <ul class="navbar-nav mb-2 mb-lg-0 horizontal-buttons">
                 <li class="nav-item spacer">
                     <a class="btn btn-outline-success" href="my_nest.php">My Nest</a>
                 </li>
                 <li class="nav-item spacer">
                     <a class="btn btn-outline-success" href="create_listing.php">Create Listing</a>
                 </li>
-                <!-- Add a spacer -->
-                <li class="nav-item spacer"></li>
-                <!-- Spacer end -->
+                <?php if (!isset($_SESSION['loggedin']) || !$_SESSION['loggedin']) { ?>
+                <li class="nav-item spacer">
+                    <a class="btn btn-outline-success" href="signin.php">Sign in</a>
+                </li>
+                <?php } ?>
+            </ul>
+            <ul class="navbar-nav mb-2 mb-lg-0">
                 <?php if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) { ?>
                     <li class="nav-item position-relative">
                         <a class="nav-link" href="my_messages.php">
@@ -46,7 +60,7 @@ if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) {
                             </svg>
                             <?php if ($unreadConversationsCount > 0) { ?>
                                 <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">
-                                    <?php echo $unreadConversationsCount; ?>
+                                    <?php echo htmlspecialchars($unreadConversationsCount); ?>
                                 </span>
                             <?php } ?>
                         </a>
@@ -58,6 +72,17 @@ if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) {
                             </svg>
                         </a>
                     </li>
+                    
+                    <?php if ($is_admin) { ?>
+                    <li class="nav-item">
+                        <a class="nav-link" href="admin_panel.php">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" style="width: 24px; height: 24px; fill: currentColor;">
+                                <path d="M78.6 5C69.1-2.4 55.6-1.5 47 7L7 47c-8.5 8.5-9.4 22-2.1 31.6l80 104c4.5 5.9 11.6 9.4 19 9.4h54.1l109 109c-14.7 29-10 65.4 14.3 89.6l112 112c12.5 12.5 32.8 12.5 45.3 0l64-64c12.5-12.5 12.5-32.8 0-45.3l-112-112c-24.2-24.2-60.6-29-89.6-14.3l-109-109V104c0-7.5-3.5-14.5-9.4-19L78.6 5zM19.9 396.1C7.2 408.8 0 426.1 0 444.1C0 481.6 30.4 512 67.9 512c18 0 35.3-7.2 48-19.9L233.7 374.3c-7.8-20.9-9-43.6-3.6-65.1l-61.7-61.7L19.9 396.1zM512 144c0-10.5-1.1-20.7-3.2-30.5c-2.4-11.2-16.1-14.1-24.2-6l-63.9 63.9c-3 3-7.1 4.7-11.3 4.7H352c-8.8 0-16-7.2-16-16V102.6c0-4.2 1.7-8.3 4.7-11.3l63.9-63.9c8.1-8.1 5.2-21.8-6-24.2C388.7 1.1 378.5 0 368 0C288.5 0 224 64.5 224 144l0 .8 85.3 85.3c36-9.1 75.8 .5 104 28.7L429 274.5c49-23 83-72.8 83-130.5zM56 432a24 24 0 1 1 48 0 24 24 0 1 1 -48 0z"/>
+                            </svg>
+                        </a>
+                    </li>
+                    <?php } ?>
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown"
                            aria-expanded="false">
@@ -75,73 +100,14 @@ if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) {
                             <li class="nav-item"><a class="dropdown-item" href="my_messages.php">My Messages</a></li>
                             <li class="nav-item"><a class="dropdown-item" href="profile.php">My Profile</a></li>
                             <li class="nav-item"><a class="dropdown-item" href="join_location.php">My Locations</a></li>
+                            <?php if ($is_admin) { ?>
+                            <li class="nav-item"><a class="dropdown-item" href="admin_panel.php">Admin Panel</a></li>
+                            <?php } ?>
                             <li class="nav-item"><a class="dropdown-item" href="logout.php">Logout</a></li>
                         </ul>
-                    </li>
-                <?php } else { ?>
-                    <li class="nav-item">
-                        <a class="btn btn-outline-success" href="signin.php">Sign in</a>
                     </li>
                 <?php } ?>
             </ul>
         </div>
     </div>
 </nav>
-
-<style>
-    .dropdown-item {
-        padding: 10px 20px; /* Increase padding for touch friendliness */
-        color: #5cb85c !important; /* Set text color to #5cb85c */
-    }
-    .dropdown-menu .nav-item {
-        display: block;
-    }
-    /* Align user icon with other icons */
-    .user-icon {
-        width: 24px;
-        height: 24px;
-    }
-    /* Custom styles for the dropdown in mobile view */
-    @media (max-width: 992px) {
-        .dropdown-menu {
-            width: 100%; /* Full width */
-            padding: 10px; /* Padding for touch friendliness */
-            font-size: 1.1rem; /* Increase font size */
-        }
-        .dropdown-item {
-            padding: 10px 20px; /* Increase padding for touch friendliness */
-            color: #5cb85c !important; /* Set text color to #5cb85c */
-        }
-        .dropdown-menu .nav-item {
-            display: block;
-        }
-    }
-    .badge {
-        padding: 0.5em 0.75em;
-        font-size: 0.75rem;
-        font-weight: 700;
-        line-height: 1;
-        text-align: center;
-        white-space: nowrap;
-        vertical-align: baseline;
-        border-radius: 0.375rem;
-    }
-    .position-absolute {
-        position: absolute !important;
-    }
-    .top-0 {
-        top: 0 !important;
-    }
-    .start-100 {
-        left: 100% !important;
-    }
-    .translate-middle {
-        transform: translate(-50%, -50%) !important;
-    }
-    .rounded-circle {
-        border-radius: 50% !important;
-    }
-    .bg-danger {
-        background-color: #dc3545 !important;
-    }
-</style>

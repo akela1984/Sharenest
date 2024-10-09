@@ -1,5 +1,10 @@
 <?php
 session_start(); // Start session
+
+// Generate CSRF token if it doesn't exist
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
 ?>
 
 <!doctype html>
@@ -32,6 +37,7 @@ session_start(); // Start session
             <div class="modal-body">
                 <!-- Create your account by filling out the form below -->
                 <form method="post" action="register.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                     <div class="mb-3">
                         <label for="registerUsername" class="form-label">Username</label>
                         <input type="text" class="form-control" id="registerUsername" name="username" aria-describedby="usernameHelp" required>

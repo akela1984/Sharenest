@@ -30,8 +30,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         die("Too many login attempts. Please try again later.");
     }
 
-    $usernameOrEmail = $_POST['usernameOrEmail'];
-    $password = $_POST['password'];
+    // Sanitize user input
+    $usernameOrEmail = htmlspecialchars($_POST['usernameOrEmail']);
+    $password = htmlspecialchars($_POST['password']);
 
     // Use prepared statements to prevent SQL injection
     $sql = "SELECT * FROM users WHERE email = ? OR username = ?";
@@ -56,6 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['user_id'] = $row['id']; // Set user_id in session
             $_SESSION['username'] = $row['username'];
             $_SESSION['user_image'] = $row['profile_image']; // Set profile image in session
+            $_SESSION['is_admin'] = $row['is_admin']; // Set admin status in session
 
             header('Location: my_nest.php');
             exit;

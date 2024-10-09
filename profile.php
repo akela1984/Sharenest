@@ -52,18 +52,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         die("Invalid CSRF token");
     }
 
-    $newEmail = trim($_POST['email']);
-    $newFirstName = trim($_POST['firstname']);
-    $newLastName = trim($_POST['lastname']);
+    $newEmail = htmlspecialchars(trim($_POST['email']), ENT_QUOTES, 'UTF-8');
+    $newFirstName = htmlspecialchars(trim($_POST['firstname']), ENT_QUOTES, 'UTF-8');
+    $newLastName = htmlspecialchars(trim($_POST['lastname']), ENT_QUOTES, 'UTF-8');
     $currentPassword = trim($_POST['current_password']);
     $newPassword = trim($_POST['new_password']);
     $confirmPassword = trim($_POST['confirm_password']);
 
-    $address_line1 = trim($_POST['address_line1']);
-    $address_line2 = trim($_POST['address_line2']);
-    $town_city = trim($_POST['town_city']);
-    $postcode = trim($_POST['postcode']);
-    $country = trim($_POST['country']);
+    $address_line1 = htmlspecialchars(trim($_POST['address_line1']), ENT_QUOTES, 'UTF-8');
+    $address_line2 = htmlspecialchars(trim($_POST['address_line2']), ENT_QUOTES, 'UTF-8');
+    $town_city = htmlspecialchars(trim($_POST['town_city']), ENT_QUOTES, 'UTF-8');
+    $postcode = htmlspecialchars(trim($_POST['postcode']), ENT_QUOTES, 'UTF-8');
+    $country = htmlspecialchars(trim($_POST['country']), ENT_QUOTES, 'UTF-8');
 
     // Validate input
     if (empty($newEmail)) {
@@ -93,7 +93,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $error = "Only JPG, JPEG, PNG, and GIF files are allowed!";
             } else {
                 // Rename image file
-                $newImageName = $username . '_' . date('YmdHis') . '.' . $imageExtension;
+                $newImageName = htmlspecialchars($username . '_' . date('YmdHis') . '.' . $imageExtension, ENT_QUOTES, 'UTF-8');
                 $targetFilePath = $uploadDir . $newImageName;
 
                 // Move uploaded file with new name
@@ -185,51 +185,51 @@ $conn->close();
 <div class="container mt-5 d-flex justify-content-center">
     <div class="col-md-6 col-sm-8">
         <h2>Profile</h2>
-        <?php if (isset($error) && $error) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error) . "</div>"; } ?>
+        <?php if (isset($error) && $error) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . "</div>"; } ?>
         <?php if ($profileUpdated) { echo "<div class='alert alert-success' role='alert'>Profile updated successfully!</div>"; } ?>
-        <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+        <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"], ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
             <div class="mb-3">
                 <label for="username" class="form-label">Username:</label>
-                <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" readonly>
+                <input type="text" class="form-control" id="username" name="username" value="<?php echo htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8'); ?>" readonly>
                 <small class="form-text text-muted">This can't be edited.</small>
             </div>
             <div class="mb-3">
                 <label for="email" class="form-label">Email:</label>
-                <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($user['email']); ?>" required readonly>
+                <input type="email" class="form-control" id="email" name="email" value="<?php echo htmlspecialchars($user['email'], ENT_QUOTES, 'UTF-8'); ?>" required readonly>
             </div>
             <div class="mb-3">
                 <label for="firstname" class="form-label">First Name:</label>
-                <input type="text" class="form-control" id="firstname" name="firstname" value="<?php echo htmlspecialchars($user['firstname']); ?>" readonly>
+                <input type="text" class="form-control" id="firstname" name="firstname" value="<?php echo htmlspecialchars($user['firstname'], ENT_QUOTES, 'UTF-8'); ?>" readonly>
             </div>
             <div class="mb-3">
                 <label for="lastname" class="form-label">Last Name:</label>
-                <input type="text" class="form-control" id="lastname" name="lastname" value="<?php echo htmlspecialchars($user['lastname']); ?>" readonly>
+                <input type="text" class="form-control" id="lastname" name="lastname" value="<?php echo htmlspecialchars($user['lastname'], ENT_QUOTES, 'UTF-8'); ?>" readonly>
             </div>
             <div class="mb-3">
                 <label for="address_line1" class="form-label">Address Line 1:</label>
-                <input type="text" class="form-control" id="address_line1" name="address_line1" value="<?php echo htmlspecialchars($user_address['address_line1']); ?>" readonly>
+                <input type="text" class="form-control" id="address_line1" name="address_line1" value="<?php echo htmlspecialchars($user_address['address_line1'], ENT_QUOTES, 'UTF-8'); ?>" readonly>
             </div>
             <div class="mb-3">
                 <label for="address_line2" class="form-label">Address Line 2:</label>
-                <input type="text" class="form-control" id="address_line2" name="address_line2" value="<?php echo htmlspecialchars($user_address['address_line2']); ?>" readonly>
+                <input type="text" class="form-control" id="address_line2" name="address_line2" value="<?php echo htmlspecialchars($user_address['address_line2'], ENT_QUOTES, 'UTF-8'); ?>" readonly>
             </div>
             <div class="mb-3">
                 <label for="town_city" class="form-label">Town/City:</label>
-                <input type="text" class="form-control" id="town_city" name="town_city" value="<?php echo htmlspecialchars($user_address['town_city']); ?>" readonly>
+                <input type="text" class="form-control" id="town_city" name="town_city" value="<?php echo htmlspecialchars($user_address['town_city'], ENT_QUOTES, 'UTF-8'); ?>" readonly>
             </div>
             <div class="mb-3">
                 <label for="postcode" class="form-label">Postcode:</label>
-                <input type="text" class="form-control" id="postcode" name="postcode" value="<?php echo htmlspecialchars($user_address['postcode']); ?>" readonly>
+                <input type="text" class="form-control" id="postcode" name="postcode" value="<?php echo htmlspecialchars($user_address['postcode'], ENT_QUOTES, 'UTF-8'); ?>" readonly>
             </div>
             <div class="mb-3">
                 <label for="country" class="form-label">Country:</label>
-                <input type="text" class="form-control" id="country" name="country" value="<?php echo htmlspecialchars($user_address['country']); ?>" readonly>
+                <input type="text" class="form-control" id="country" name="country" value="<?php echo htmlspecialchars($user_address['country'], ENT_QUOTES, 'UTF-8'); ?>" readonly>
             </div>
             <div class="mb-3">
                 <label for="profileImage" class="form-label">Profile Image:</label>
                 <?php if ($user['profile_image']) {
-                    echo "<img src='" . htmlspecialchars($user['profile_image']) . "' alt='Profile Image' width='150' class='mb-3'>";
+                    echo "<img src='" . htmlspecialchars($user['profile_image'], ENT_QUOTES, 'UTF-8') . "' alt='Profile Image' width='150' class='mb-3'>";
                 } ?>
                 <input type="file" class="form-control" id="profileImage" name="profileImage" accept="image/*" aria-describedby="imageHelp" disabled>
                 <div id="imageHelp" class="form-text">Accepted formats: JPG, JPEG, PNG, GIF</div>

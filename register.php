@@ -34,7 +34,7 @@ $conn = new mysqli($dbServer, $dbUsername, $dbPassword, $dbName);
 
 // Check connection
 if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+    die("Connection failed: " . htmlspecialchars($conn->connect_error));
 }
 
 // Generate CSRF token
@@ -56,8 +56,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         die("Invalid CSRF token");
     }
 
-    $username = trim($_POST['username']);
-    $email = trim($_POST['email']);
+    $username = htmlspecialchars(trim($_POST['username']), ENT_QUOTES, 'UTF-8');
+    $email = htmlspecialchars(trim($_POST['email']), ENT_QUOTES, 'UTF-8');
     $password = $_POST['password'];
     $confirmPassword = $_POST['confirmPassword'];
 
@@ -116,8 +116,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         throw new Exception("Email template not found at $templatePath");
                     }
                     $template = file_get_contents($templatePath);
-                    $verificationLink = "http://sharenest.org/verify.php?token=$token";
-                    $emailBody = str_replace(['{{username}}', '{{verification_link}}'], [htmlspecialchars($username), $verificationLink], $template);
+                    $verificationLink = "http://sharenest.org/verify.php?token=" . urlencode($token);
+                    $emailBody = str_replace(['{{username}}', '{{verification_link}}'], [htmlspecialchars($username, ENT_QUOTES, 'UTF-8'), htmlspecialchars($verificationLink, ENT_QUOTES, 'UTF-8')], $template);
 
                     // Content
                     $mail->isHTML(true);
@@ -136,8 +136,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     exit;
 
                 } catch (Exception $e) {
-                    echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
-                    echo "Exception: {$e->getMessage()}";
+                    echo "Message could not be sent. Mailer Error: " . htmlspecialchars($mail->ErrorInfo);
+                    echo "Exception: " . htmlspecialchars($e->getMessage());
                 }
 
                 // Redirect to the signin page
@@ -175,9 +175,9 @@ $conn->close();
 <div class="container mt-5 d-flex justify-content-center">
     <div class="col-md-6 col-sm-8">
         <h2>Register</h2>
-        <?php if (isset($error)) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error) . "</div>"; } ?>
-        <form id="registerForm" method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+        <?php if (isset($error)) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . "</div>"; } ?>
+        <form id="registerForm" method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"], ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8'); ?>">
             <div class="mb-3">
                 <label for="username" class="form-label">Username:</label>
                 <input type="text" class="form-control" id="username" name="username" required>

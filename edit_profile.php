@@ -9,7 +9,7 @@ if (!isset($_SESSION['loggedin'])) {
 
 include 'connection.php';
 
-$username = $_SESSION['username'];
+$username = htmlspecialchars($_SESSION['username']);
 $sql = "SELECT * FROM users WHERE username = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $username);
@@ -36,8 +36,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         die("Invalid CSRF token");
     }
 
-    $newUsername = trim($_POST['username']);
-    $newEmail = trim($_POST['email']);
+    $newUsername = htmlspecialchars(trim($_POST['username']));
+    $newEmail = htmlspecialchars(trim($_POST['email']));
 
     // Validate input
     if (empty($newUsername) || empty($newEmail)) {
@@ -70,7 +70,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     if (!empty($profileImage) && file_exists($profileImage)) {
                         unlink($profileImage);
                     }
-                    $profileImage = $targetFilePath;
+                    $profileImage = htmlspecialchars($targetFilePath);
                 } else {
                     $error = "Failed to upload profile image!";
                 }

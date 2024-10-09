@@ -18,10 +18,10 @@ if ($config === false) {
 }
 
 // Extract database configuration
-$dbServer = $config['database']['server'];
-$dbUsername = $config['database']['username'];
-$dbPassword = $config['database']['password'];
-$dbName = $config['database']['name'];
+$dbServer = htmlspecialchars($config['database']['server']); // Sanitize server name
+$dbUsername = htmlspecialchars($config['database']['username']); // Sanitize username
+$dbPassword = htmlspecialchars($config['database']['password']); // Sanitize password
+$dbName = htmlspecialchars($config['database']['name']); // Sanitize database name
 
 // Create connection
 $conn = new mysqli($dbServer, $dbUsername, $dbPassword, $dbName);
@@ -32,7 +32,7 @@ if ($conn->connect_error) {
 }
 
 if (isset($_GET['token'])) {
-    $token = $_GET['token'];
+    $token = htmlspecialchars($_GET['token']); // Sanitize token
 
     // Validate the token
     $sql = "SELECT * FROM users WHERE token = ? AND status = 'inactive'";
