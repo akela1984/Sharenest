@@ -79,11 +79,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if ($result->num_rows > 0) {
             $error = "Username or email already taken!";
         } else {
-            // Insert new user into the database
+            // Generate a verification token
+            $token = bin2hex(random_bytes(16));
             $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            $sql = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+
+            // Insert new user into the database with a token and status as inactive
+            $sql = "INSERT INTO users (username, email, password, token, status) VALUES (?, ?, ?, ?, ?)";
             $stmt = $conn->prepare($sql);
-            $stmt->bind_param("sss", $username, $email, $hashedPassword);
+            $status = 'inactive';
+            $stmt->bind_param("sssss", $username, $email, $hashedPassword, $token, $status);
 
             if ($stmt->execute()) {
                 // Registration successful, send confirmation email
@@ -112,11 +116,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         throw new Exception("Email template not found at $templatePath");
                     }
                     $template = file_get_contents($templatePath);
-                    $emailBody = str_replace('{{username}}', htmlspecialchars($username), $template);
+                    $verificationLink = "http://sharenest.org/verify.php?token=$token";
+                    $emailBody = str_replace(['{{username}}', '{{verification_link}}'], [htmlspecialchars($username), $verificationLink], $template);
 
                     // Content
                     $mail->isHTML(true);
-                    $mail->Subject = 'Welcome to Sharenest';
+                    $mail->Subject = 'Email Verification - Sharenest';
                     $mail->Body    = $emailBody;
 
                     // Embed the image
@@ -148,6 +153,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 $conn->close();
 ?>
+
 <!doctype html>
 <html lang="en">
 <head>

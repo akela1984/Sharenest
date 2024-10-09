@@ -44,10 +44,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // User found
         $row = $result->fetch_assoc();
         $hashedPassword = $row['password'];
-        
-        // Verify the password
-        if (password_verify($password, $hashedPassword)) {
-            // Password is correct
+        $status = $row['status'];
+
+        if ($status !== 'active') {
+            // User is not verified
+            $error = "Your account is not verified. Please check your email to verify your account.";
+        } elseif (password_verify($password, $hashedPassword)) {
+            // Password is correct and user is verified
             session_regenerate_id(true); // Prevent session fixation
             $_SESSION['loggedin'] = true;
             $_SESSION['user_id'] = $row['id']; // Set user_id in session
