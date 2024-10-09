@@ -2,14 +2,6 @@
 include 'session_timeout.php';
 include 'connection.php'; // Include the connection to your database
 
-// -----------------------------------------------------------------------------------
-// Check if the user has access REMOVE THIS AFTER GO LIVE
-if (!isset($_SESSION['access_granted'])) {
-    header('Location: comingsoon.php');
-    exit();
-}
-// -----------------------------------------------------------------------------------
-
 $unreadConversationsCount = 0;
 $underReviewCount = 0;
 $greenPoints = 0; // Initialize green points variable
@@ -21,41 +13,59 @@ if (isset($_SESSION['loggedin']) && $_SESSION['loggedin']) {
     $sql_unread_count = "SELECT COUNT(DISTINCT conversation_id) AS unread_count 
                          FROM messages 
                          WHERE recipient_id = ? AND `read` = FALSE";
-    $stmt_unread_count = $conn->prepare($sql_unread_count);
-    $stmt_unread_count->bind_param("i", $userId);
-    $stmt_unread_count->execute();
-    $result_unread_count = $stmt_unread_count->get_result();
-    $unreadConversationsCount = $result_unread_count->fetch_assoc()['unread_count'];
-    $stmt_unread_count->close();
+    if ($stmt_unread_count = $conn->prepare($sql_unread_count)) {
+        $stmt_unread_count->bind_param("i", $userId);
+        $stmt_unread_count->execute();
+        $result_unread_count = $stmt_unread_count->get_result();
+        $unreadConversationsCount = $result_unread_count->fetch_assoc()['unread_count'];
+        $stmt_unread_count->close();
+    } else {
+        // Handle error
+        error_log('Error preparing statement: ' . $conn->error);
+    }
 
     // Check if the user is an admin
     $sql_is_admin = "SELECT is_admin, green_points FROM users WHERE id = ?";
-    $stmt_is_admin = $conn->prepare($sql_is_admin);
-    $stmt_is_admin->bind_param("i", $userId);
-    $stmt_is_admin->execute();
-    $result_is_admin = $stmt_is_admin->get_result();
-    $user_data = $result_is_admin->fetch_assoc();
-    $is_admin = $user_data['is_admin'] === 'true';
-    $greenPoints = $user_data['green_points']; // Fetch green points
-    $stmt_is_admin->close();
+    if ($stmt_is_admin = $conn->prepare($sql_is_admin)) {
+        $stmt_is_admin->bind_param("i", $userId);
+        $stmt_is_admin->execute();
+        $result_is_admin = $stmt_is_admin->get_result();
+        $user_data = $result_is_admin->fetch_assoc();
+        $is_admin = $user_data['is_admin'] === 'true';
+        $greenPoints = $user_data['green_points']; // Fetch green points
+        $stmt_is_admin->close();
+    } else {
+        // Handle error
+        error_log('Error preparing statement: ' . $conn->error);
+    }
 
     if ($is_admin) {
         // Get under review count
         $sql_under_review_count = "SELECT COUNT(*) AS under_review_count 
                                    FROM listings 
                                    WHERE state = 'under_review'";
-        $stmt_under_review_count = $conn->prepare($sql_under_review_count);
-        $stmt_under_review_count->execute();
-        $result_under_review_count = $stmt_under_review_count->get_result();
-        $underReviewCount = $result_under_review_count->fetch_assoc()['under_review_count'];
-        $stmt_under_review_count->close();
+        if ($stmt_under_review_count = $conn->prepare($sql_under_review_count)) {
+            $stmt_under_review_count->execute();
+            $result_under_review_count = $stmt_under_review_count->get_result();
+            $underReviewCount = $result_under_review_count->fetch_assoc()['under_review_count'];
+            $stmt_under_review_count->close();
+        } else {
+            // Handle error
+            error_log('Error preparing statement: ' . $conn->error);
+        }
     }
 } else {
     $is_admin = false;
 }
 
 // Determine the name to display
-$displayName = isset($_SESSION['firstname']) && !empty($_SESSION['firstname']) ? $_SESSION['firstname'] : $_SESSION['username'];
+if (isset($_SESSION['firstname']) && !empty($_SESSION['firstname'])) {
+    $displayName = $_SESSION['firstname'];
+} elseif (isset($_SESSION['username'])) {
+    $displayName = $_SESSION['username'];
+} else {
+    $displayName = 'Guest'; // Fallback in case neither firstname nor username is set
+}
 ?>
 
 <nav class="navbar navbar-expand-lg bg-body-tertiary">

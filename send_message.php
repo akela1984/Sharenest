@@ -2,12 +2,6 @@
 include 'session_timeout.php';
 include 'connection.php';
 
-// Check if the user has access REMOVE THIS AFTER GO LIVE
-if (!isset($_SESSION['access_granted'])) {
-    header('Location: comingsoon.php');
-    exit();
-}
-
 // Path to the configuration file
 $configFilePath = dirname(__DIR__) . '/config/config.ini';
 
@@ -53,14 +47,15 @@ $conversation_id = $data['conversation_id'];
 $sender_id = $_SESSION['user_id'];
 $message = $data['message'];
 
-// Fetch the recipient_id and recipient email from the conversation_members table
+// Fetch the recipient_id, recipient email, and email preferences from the conversation_members table
 $sql = "
-    SELECT cm.user_id, u.username AS recipient_username, u.email AS recipient_email, l.title AS listing_title, us.username AS sender_username
+    SELECT cm.user_id, u.username AS recipient_username, u.email AS recipient_email, l.title AS listing_title, us.username AS sender_username, uep.receive_message_email
     FROM conversation_members cm
     JOIN users u ON cm.user_id = u.id
     JOIN conversations c ON cm.conversation_id = c.id
     JOIN listings l ON c.listing_id = l.id
     JOIN users us ON us.id = ?
+    LEFT JOIN user_email_preferences uep ON uep.user_id = u.id
     WHERE cm.conversation_id = ? AND cm.user_id != ?
 ";
 $stmt = $conn->prepare($sql);
@@ -79,6 +74,7 @@ $recipient_username = $recipient['recipient_username'];
 $recipient_email = $recipient['recipient_email'];
 $listing_title = $recipient['listing_title'];
 $sender_username = $recipient['sender_username'];
+$receive_message_email = $recipient['receive_message_email'];
 
 // Insert new message into the database
 $sql = "INSERT INTO messages (conversation_id, sender_id, recipient_id, message, sent_at) VALUES (?, ?, ?, ?, NOW())";
@@ -94,58 +90,60 @@ $response = ['success' => false];
 if ($stmt->execute()) {
     $response['success'] = true;
 
-    // Send email notification to the recipient
-    $mail = new PHPMailer(true);
+    // Send email notification to the recipient if they have opted in
+    if ($receive_message_email) {
+        $mail = new PHPMailer(true);
 
-    try {
-        // Server settings
-        $mail->isSMTP();
-        $mail->Host       = 'smtp.livemail.co.uk';
-        $mail->SMTPAuth   = true;
-        $mail->Username   = $config['smtp']['username'];
-        $mail->Password   = $config['smtp']['password'];
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
+        try {
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.livemail.co.uk';
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $config['smtp']['username'];
+            $mail->Password   = $config['smtp']['password'];
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = 587;
 
-        // Recipients
-        $mail->setFrom('no-reply@sharenest.org', 'Sharenest');
-        $mail->addAddress($recipient_email, $recipient_username);
+            // Recipients
+            $mail->setFrom('no-reply@sharenest.org', 'Sharenest');
+            $mail->addAddress($recipient_email, $recipient_username);
 
-        // Load HTML template
-        $templatePath = __DIR__ . '/templates/internal_message_template.html';
-        if (!file_exists($templatePath)) {
-            throw new Exception("Email template not found at $templatePath");
+            // Load HTML template
+            $templatePath = __DIR__ . '/templates/internal_message_template.html';
+            if (!file_exists($templatePath)) {
+                throw new Exception("Email template not found at $templatePath");
+            }
+            $template = file_get_contents($templatePath);
+
+            // Sanitize and encode variables for HTML output
+            $safe_recipient_username = htmlspecialchars($recipient_username);
+            $safe_sender_username = htmlspecialchars($sender_username);
+            $safe_listing_title = htmlspecialchars($listing_title);
+            $safe_message = nl2br(htmlspecialchars($message));
+
+            // Replace placeholders in the template
+            $emailBody = str_replace(
+                ['{{recipient_username}}', '{{sender_username}}', '{{listing_title}}', '{{message}}'],
+                [$safe_recipient_username, $safe_sender_username, $safe_listing_title, $safe_message],
+                $template
+            );
+
+            // Content
+            $mail->isHTML(true);
+            $mail->Subject = 'New Message Notification';
+            $mail->Body    = $emailBody;
+
+            // Embed the image
+            $logoPath = __DIR__ . '/img/sharenest_logo.png';
+            if (!file_exists($logoPath)) {
+                throw new Exception("Logo not found at $logoPath");
+            }
+            $mail->addEmbeddedImage($logoPath, 'sharenest_logo');
+
+            $mail->send();
+        } catch (Exception $e) {
+            $response['error'] = 'Message sent but email notification failed: ' . $mail->ErrorInfo . ' Exception: ' . $e->getMessage();
         }
-        $template = file_get_contents($templatePath);
-        
-        // Sanitize and encode variables for HTML output
-        $safe_recipient_username = htmlspecialchars($recipient_username);
-        $safe_sender_username = htmlspecialchars($sender_username);
-        $safe_listing_title = htmlspecialchars($listing_title);
-        $safe_message = nl2br(htmlspecialchars($message));
-
-        // Replace placeholders in the template
-        $emailBody = str_replace(
-            ['{{recipient_username}}', '{{sender_username}}', '{{listing_title}}', '{{message}}'],
-            [$safe_recipient_username, $safe_sender_username, $safe_listing_title, $safe_message],
-            $template
-        );
-
-        // Content
-        $mail->isHTML(true);
-        $mail->Subject = 'New Message Notification';
-        $mail->Body    = $emailBody;
-
-        // Embed the image
-        $logoPath = __DIR__ . '/img/sharenest_logo.png';
-        if (!file_exists($logoPath)) {
-            throw new Exception("Logo not found at $logoPath");
-        }
-        $mail->addEmbeddedImage($logoPath, 'sharenest_logo');
-
-        $mail->send();
-    } catch (Exception $e) {
-        $response['error'] = 'Message sent but email notification failed: ' . $mail->ErrorInfo . ' Exception: ' . $e->getMessage();
     }
 } else {
     $response['error'] = 'Error executing statement: ' . $stmt->error;

@@ -79,7 +79,7 @@ $conn->close();
 <!doctype html>
 <html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     
     <!-- SEO Meta Tags -->
     <title>ShareNest - Community for Sharing Unwanted Goods in the Lothian area</title>
@@ -87,19 +87,30 @@ $conn->close();
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-16S7LDQL7H"></script>
     <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-16S7LDQL7H');
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-16S7LDQL7H');
     </script>
 
+    <!-- Hotjar Tracking Code for Sharenest.org -->
+    <script>
+        (function(h,o,t,j,a,r){
+            h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+            h._hjSettings={hjid:5057424,hjsv:6};
+            a=o.getElementsByTagName('head')[0];
+            r=o.createElement('script');r.async=1;
+            r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+            a.appendChild(r);
+        })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+    </script>
 
-    <meta name="description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
-    <meta name="keywords" content="share, unwanted goods, free items, community sharing, Lothian, give away, second hand, recycle, reuse">
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free across the UK. Connect with neighbours and give a second life to items you no longer need.">
+    <meta name="keywords" content="share, unwanted goods, free items, community sharing, UK, give away, second hand, recycle, reuse">
     <meta name="robots" content="index, follow">
     <meta name="author" content="ShareNest">
-    
+
     <!-- Web App Manifest -->
     <link rel="manifest" href="/manifest.json">
 
@@ -117,28 +128,29 @@ $conn->close();
     <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
 
-     <!-- Favicon for Browsers -->
-     <link rel="icon" href="/img/favicon.png" type="image/png">
+    <!-- Favicon for Browsers -->
+    <link rel="icon" href="/img/favicon.png" type="image/png">
     <link rel="icon" href="/img/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="/img/favicon.ico" type="image/x-icon">
-    
+
     <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="ShareNest - Community for Sharing Unwanted Goods in the Lothian area">
-    <meta property="og:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta property="og:title" content="ShareNest - Community for Sharing Unwanted Goods across the UK">
+    <meta property="og:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free across the UK. Connect with neighbours and give a second life to items you no longer need.">
     <meta property="og:image" content="/icons/icon-512x512.png">
     <meta property="og:url" content="https://www.sharenest.org">
     <meta property="og:type" content="website">
 
     <!-- Twitter Card Meta Tags -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="ShareNest - Community for Sharing Unwanted Goods in the Lothian area">
-    <meta name="twitter:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area. Connect with neighbours and give a second life to items you no longer need.">
+    <meta name="twitter:title" content="ShareNest - Community for Sharing Unwanted Goods across the UK">
+    <meta name="twitter:description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free across the UK. Connect with neighbours and give a second life to items you no longer need.">
     <meta name="twitter:image" content="/icons/icon-512x512.png">
 
     <!-- Link to External PWA Script -->
     <script src="/js/pwa.js" defer></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
     <link href="css/styles.css" rel="stylesheet">
 </head>
 <body class="p-3 m-0 border-0 bd-example m-0 border-0">
@@ -149,9 +161,10 @@ $conn->close();
 
 <!-- Login Form STARTS here -->
 <div id="content" class="container mt-5 d-flex align-items-center justify-content-center">
-    <div class="col-md-5 col-sm-8" >
+    <div class="col-md-5 col-sm-8">
         <h2>Login</h2>
         <?php if (isset($error)) { echo "<div class='alert alert-danger' role='alert'>" . htmlspecialchars($error) . "</div>"; } ?>
+        <?php if (isset($_SESSION['message'])) { echo "<div class='alert alert-info' role='alert'>" . htmlspecialchars($_SESSION['message']) . "</div>"; unset($_SESSION['message']); } ?>
         <form method="post" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
             <div class="mb-3">
@@ -164,7 +177,30 @@ $conn->close();
             </div>
             <button type="submit" class="btn btn-outline-success">Login</button>
             <p class="mt-3">Don't have an account? <a href="register.php">Register here</a>.</p>
+            <p class="mt-3"><a href="#" data-bs-toggle="modal" data-bs-target="#forgotModal">Forgot your username or password?</a></p>
         </form>
+    </div>
+</div>
+
+<!-- Modal for Forgot Username or Password -->
+<div class="modal fade" id="forgotModal" tabindex="-1" aria-labelledby="forgotModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="forgotModalLabel">Retrieve Username or Reset Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="forgot_handler.php">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
+                    <div class="mb-3">
+                        <label for="forgotEmail" class="form-label">Enter your registered email address:</label>
+                        <input type="email" class="form-control" id="forgotEmail" name="forgotEmail" required>
+                    </div>
+                    <button type="submit" class="btn btn-outline-success">Submit</button>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 <!-- Login Form ENDS here -->
@@ -175,6 +211,6 @@ $conn->close();
 
 <!-- Bootstrap Bundle with Popper -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <button id="install-button" style="display: none;">Install Sharenest</button>
+<button id="install-button" style="display: none;">Install Sharenest</button>
 </body>
 </html>

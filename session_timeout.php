@@ -1,9 +1,9 @@
 <?php
-// Set session save path
-ini_set('session.save_path', '/home/storage/497/4304497/user/htdocs/sessions');
-
-// Start session
-session_start();
+// Set the temporary upload directory and session save path
+if (session_status() == PHP_SESSION_NONE) {
+    //ini_set('session.save_path', '/home/storage/497/4304497/user/htdocs/sessions');
+    session_start();
+}
 
 // Set the session timeout duration (in seconds)
 $timeout_duration = 600; // 10 minutes

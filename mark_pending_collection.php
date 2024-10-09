@@ -2,12 +2,6 @@
 include 'session_timeout.php';
 include 'connection.php';
 
-// Redirect to the comingsoon page if access is not granted
-if (!isset($_SESSION['access_granted'])) {
-    header('Location: comingsoon.php');
-    exit();
-}
-
 // Redirect to the sign-in page if the user is not logged in
 if (!isset($_SESSION['loggedin'])) {
     header('Location: signin.php');

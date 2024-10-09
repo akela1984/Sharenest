@@ -1,29 +1,22 @@
 <?php
-include 'session_timeout.php'; // Ensure session_start() is called here
-
-// Generate CSRF token if it doesn't exist
-if (empty($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
+include 'session_timeout.php';
 ?>
+
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>404 Not Found</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact Us - ShareNest</title>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-16S7LDQL7H"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-16S7LDQL7H');
+</script>
 
-        <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-16S7LDQL7H"></script>
-    <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-16S7LDQL7H');
-    </script>
-
-    <!-- Hotjar Tracking Code for Sharenest.org -->
+<!-- Hotjar Tracking Code for Sharenest.org -->
 <script>
     (function(h,o,t,j,a,r){
         h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
@@ -35,9 +28,9 @@ if (empty($_SESSION['csrf_token'])) {
     })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
 </script>
 
-    <!--  Google Ad blocking recovery script -->
+  <!--  Google Ad blocking recovery script -->
 
-<script async src="https://fundingchoicesmessages.google.com/i/pub-7451119341261729?ers=1" nonce="rOmr667MK6arcexjSTnhMg"></script><script nonce="rOmr667MK6arcexjSTnhMg">(function() {function signalGooglefcPresent() {if (!window.frames['googlefcPresent']) {if (document.body) {const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe);} else {setTimeout(signalGooglefcPresent, 0);}}}signalGooglefcPresent();})();</script>
+  <script async src="https://fundingchoicesmessages.google.com/i/pub-7451119341261729?ers=1" nonce="rOmr667MK6arcexjSTnhMg"></script><script nonce="rOmr667MK6arcexjSTnhMg">(function() {function signalGooglefcPresent() {if (!window.frames['googlefcPresent']) {if (document.body) {const iframe = document.createElement('iframe'); iframe.style = 'width: 0; height: 0; border: none; z-index: -1000; left: -1000px; top: -1000px;'; iframe.style.display = 'none'; iframe.name = 'googlefcPresent'; document.body.appendChild(iframe);} else {setTimeout(signalGooglefcPresent, 0);}}}signalGooglefcPresent();})();</script>
 
 <!--  Google Ad blocking recovery Error protection message script -->
 
@@ -79,8 +72,9 @@ if (empty($_SESSION['csrf_token'])) {
      window.__h82AlnkH6D91__("WyJwdWItNzQ1MTExOTM0MTI2MTcyOSIsW251bGwsbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9iL3B1Yi03NDUxMTE5MzQxMjYxNzI5Il0sbnVsbCxudWxsLCJodHRwczovL2Z1bmRpbmdjaG9pY2VzbWVzc2FnZXMuZ29vZ2xlLmNvbS9lbC9BR1NLV3hVQWhuWll6bVlUUmxXNFJ5eC12UEVrc1pUdVZfWmVreklxeUI5SHVtUnNhRnpMLU9wa05RaXFXNjU4ZlZ4NFJlbUlMYlFDYUNYTHhVUmpzdWZ4UVJFdXRRXHUwMDNkXHUwMDNkP3RlXHUwMDNkVE9LRU5fRVhQT1NFRCIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFZTUE1pTUl3TFI5RDNEM044d0J2cENGS1pfVUp5UU1BSl84c1ZqVzV6b2VaUnNGQnJoaHNxUjVDVGVPQWhhQkpuanJuVHkxMGhXX3EydUZzWnp2UFE4ZlFcdTAwM2RcdTAwM2Q/YWJcdTAwM2QxXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFVTallVa1R0eUtqMUhOeFNvRWhnVF9LZE5CeWdqS1VNd3JtelBTOGxfd2FOX0dHWV9uckRicUg1bVYtRVhXR1IwYm9XSS1jWDdNbFI3dmxNSnBXb1pCQXdcdTAwM2RcdTAwM2Q/YWJcdTAwM2QyXHUwMDI2c2JmXHUwMDNkMSIsImh0dHBzOi8vZnVuZGluZ2Nob2ljZXNtZXNzYWdlcy5nb29nbGUuY29tL2VsL0FHU0tXeFVwLWpNdjU4d1V6ZkZzQnhtcTBOYmJ2QW5qQU5iYWcwcnp0UGlLUE84aUFzWGp5UWhxVTJXU3hJcldlRVZ5eUw1SGJlZWlxUURvQVE1ckpHaU9IMExJaFFcdTAwM2RcdTAwM2Q/c2JmXHUwMDNkMiIsImRpdi1ncHQtYWQiLDIwLDEwMCwiY0hWaUxUYzBOVEV4TVRrek5ERXlOakUzTWprXHUwMDNkIixbbnVsbCxudWxsLG51bGwsImh0dHBzOi8vd3d3LmdzdGF0aWMuY29tLzBlbW4vZi9wL3B1Yi03NDUxMTE5MzQxMjYxNzI5LmpzP3VzcXBcdTAwM2RDQkEiXSwiaHR0cHM6Ly9mdW5kaW5nY2hvaWNlc21lc3NhZ2VzLmdvb2dsZS5jb20vZWwvQUdTS1d4VklxZzlRNldSSTNMMGxZd2t1dEZYVXg1S1NiTGNZaG1hbmZKdktJYV83QTdJVFA0cGZJQ1FsQWtsVUY1Tl82NjRIZy0yRHV2aU83VzhsanRCSTNaaHhfQVx1MDAzZFx1MDAzZCJd");</script>
 
 
-    <!-- SEO Meta Tags -->
-    <meta name="description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free across the UK. Connect with neighbours and give a second life to items you no longer need.">
+
+<!-- SEO Meta Tags -->
+<meta name="description" content="Join ShareNest, the community platform for sharing and discovering unwanted goods for free across the UK. Connect with neighbours and give a second life to items you no longer need.">
 <meta name="keywords" content="share, unwanted goods, free items, community sharing, UK, give away, second hand, recycle, reuse">
 <meta name="robots" content="index, follow">
 <meta name="author" content="ShareNest">
@@ -126,44 +120,33 @@ if (empty($_SESSION['csrf_token'])) {
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
 <link href="css/styles.css" rel="stylesheet">
-
-    <!-- Include Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <style>
-        /* Custom styles for 404 page */
-        .error-404 {
-            font-size: 100px;
-            color: #28a745;
-        }
-        .funny-text {
-            font-size: 24px;
-            color: #28a745;
-            margin-top: 20px;
-        }
-    </style>
 </head>
 <body class="p-3 m-0 border-0 bd-example m-0 border-0">
-    <!-- Navbar STARTS here -->
-    <?php include 'navbar.php'; ?>
-    <!-- Navbar ENDS here -->
 
-    <div id="content" class="container">
-        <div class="row">
-            <div class="col-md-12 text-center">
-                <h1 class="error-404">404</h1>
-                <p class="funny-text">Oops! The page you're looking for might have been recycled. 🌱♻️</p>
-                <p>We're so good at recycling, even our pages get reused! Try going back to the <a href="index.php">Homepage</a>.</p>
-            </div>
-        </div>
+<!-- Navbar STARTS here -->
+<?php include 'navbar.php'; ?>
+<!-- Navbar ENDS here -->
+
+<!-- Contact Us Information STARTS here -->
+<div id="content" class="container mt-5">
+    <div class="col-md-8 offset-md-2">
+        <h2>Contact Us</h2>
+        <p>We value your experience with ShareNest. Here’s how you can get the assistance you need:</p>
+        <ul>
+            <li>For answers to common questions, please visit our <a href="faq.php">FAQ page</a> first.</li>
+            <li>For privacy-related inquiries, please refer to our <a href="privacy_policy.php">Privacy Policy</a>.</li>
+            <li>If you have any other questions, suggestions, or feedback, feel free to drop us an email at <a href="mailto:info@sharenest.org">info@sharenest.org</a>. If you don't find the answer you’re looking for in our FAQ, we're here to help!</li>
+        </ul>
     </div>
+</div>
+<!-- Contact Us Information ENDS here -->
 
-    <!-- Footer STARTS here -->
-    <?php include 'footer.php'; ?>
-    <!-- Footer ENDS here -->
+<!-- Footer STARTS here -->
+<?php include 'footer.php'; ?>
+<!-- Footer ENDS here -->
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Include Leaflet JavaScript -->
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<button id="install-button" style="display: none;">Install Sharenest</button>
 </body>
 </html>

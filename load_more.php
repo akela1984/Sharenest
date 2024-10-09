@@ -1,12 +1,6 @@
 <?php
 include 'session_timeout.php';
 
-// Check if the user has access REMOVE THIS AFTER GO LIVE
-if (!isset($_SESSION['access_granted'])) {
-    header('Location: comingsoon.php');
-    exit();
-}
-
 // Redirect non-logged-in users to the sign-in page
 if (!isset($_SESSION['loggedin'])) {
     header('Location: signin.php');
@@ -26,7 +20,7 @@ if (empty($locationIds)) {
     exit;
 }
 
-$locationIdsArray = explode(',', $locationIds);
+$locationIdsArray = $locationIds !== '' ? explode(',', $locationIds) : [];
 $locationIdsPlaceholder = implode(',', array_fill(0, count($locationIdsArray), '?'));
 
 $sql = "
@@ -71,7 +65,8 @@ if (!empty($search)) {
 $params[] = $offset;
 $params[] = $limit;
 
-$stmt->bind_param(str_repeat('i', count($locationIdsArray)) . (!empty($search) ? 'ss' : '') . 'ii', ...$params);
+$paramTypes = str_repeat('i', count($locationIdsArray)) . (!empty($search) ? 'ss' : '') . 'ii';
+$stmt->bind_param($paramTypes, ...$params);
 $stmt->execute();
 $result = $stmt->get_result();
 

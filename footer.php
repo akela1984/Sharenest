@@ -5,7 +5,7 @@
             <div class="col-lg col-md-6 mb-4 mb-lg-0">
                 <div class="footer-logo">
                     <img src="img/sharenest_logo.png" alt="ShareNest Logo" style="height: 40px;">
-                    <p>Join ShareNest, the community platform for sharing and discovering unwanted goods for free in the Lothian area.</p>
+                    <p>Join ShareNest, the community platform for sharing and discovering unwanted goods for free across the UK.</p>
                 </div>
             </div>
             <div class="col-lg col-md-6 mb-4 mb-lg-0">
@@ -34,7 +34,7 @@
                     <ul class="list-unstyled">
                         <li><a href="faq.php">FAQ</a></li>
                         <li><a href="privacy_policy.php">Privacy</a></li>
-                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="contact_us.php">Contact Us</a></li>
                         <li><a href="our_guidelines.php">Our Guidelines</a></li>
                     </ul>
                 </div>

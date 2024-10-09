@@ -2,12 +2,6 @@
 include 'session_timeout.php';
 include 'connection.php';
 
-// Check if the user has access REMOVE THIS AFTER GO LIVE
-if (!isset($_SESSION['access_granted'])) {
-    header('Location: comingsoon.php');
-    exit();
-}
-
 header('Content-Type: application/json');
 
 // Generate CSRF token if it doesn't exist
